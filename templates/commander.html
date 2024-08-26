@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+<body>
+    <div class="container">
+        <h1 class="title">CMDR Tracker</h1>
+        <p>{{ message }}</p>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Player Name</th>
+                    <th>ID</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in results %}
+                <tr>
+                    <td>{{ row[0] }}</td>
+                    <td>{{ row[1] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+{% endblock %}
+
+</html>

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0">
+    <title>cmdr tracker</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #68656A;
+        }
+        
+        .title{
+            color: #f1e6b2
+        }
+        button {
+            margin-right: 10px;
+            font-size: 16px;
+            margin-bottom: 10px;
+            background-color: #f1e6b2;
+        }
+        button.selected {
+            background-color: #bf624c;
+            color: #fff;
+        }
+        #submitBtn {
+            display: block;
+            margin-top: 10px;
+            font-size: 18px;
+            padding: 10px 20px;
+        }
+        .player-container {
+            display: flex;
+            flex-direction: column;
+            margin-top: 10px;
+        }
+        .player-row {
+            display: flex;
+            margin-bottom: 10px;
+            
+        }
+        .player-select, .deck-select{
+            margin-right: 10px;
+            
+            background-color: #D1D0D2;
+        }
+
+        .start-radio:checked {
+            color: black /* Change this to the desired color */
+        }
+        
+    </style>
+</head>
+<body>
+    <h1 class = "title">cmdr tracker</h1>
+    <div>Enter Player and Decks</div>
+    <form action="/submit_test" method="post" id="playerForm">
+        <div>
+            <button type="button" onclick="setPlayers(3)" id="btn3">3 Players</button>
+            <button type="button" onclick="setPlayers(4)" id="btn4">4 Players</button>
+        </div>
+        <div id="playerInputs"></div> 
+        <input type="hidden" id="num_players" name="num_players" value="3">
+        <button type="submit" id="submitBtn">Submit</button>
+    </form>
+
+    <script>
+        function setPlayers(num) {
+            document.getElementById("num_players").value = num;
+            document.getElementById("btn3").classList.remove("selected");
+            document.getElementById("btn4").classList.remove("selected");
+            document.getElementById("btn" + num).classList.add("selected");
+
+            var playerInputsContainer = document.getElementById("playerInputs");
+            playerInputsContainer.innerHTML = ""; // Clear previous player input fields
+
+            for (var i = 0; i < num; i++) {
+                var playerRow = document.createElement("div");
+                playerRow.classList.add("player-row");
+
+                var playerSelect = document.createElement("select");
+                playerSelect.name = "player" + (i + 1);
+                playerSelect.classList.add("player-select");
+                playerSelect.required = true; // Make the field required
+
+                var playerOption = document.createElement("option");
+                playerOption.value = "";
+                playerOption.text = "Select Player " + (i + 1);
+                playerOption.disabled = true;
+                playerOption.selected = true;
+                playerSelect.appendChild(playerOption);
+
+                for (var j = 0; j < playerSuggestions.length; j++) {
+                    var option = document.createElement("option");
+                    option.value = playerSuggestions[j];
+                    option.text = playerSuggestions[j];
+                    playerSelect.appendChild(option);
+                }
+
+                
+
+                // Add "Other" option
+                var otherOption = document.createElement("option");
+                otherOption.value = "Other";
+                otherOption.text = "Other";
+                playerSelect.appendChild(otherOption);
+
+                playerRow.appendChild(playerSelect);
+
+                var deckSelect = document.createElement("select");
+                deckSelect.name = "deck" + (i + 1);
+                deckSelect.classList.add("deck-select");
+                deckSelect.required = true; // Make the field required
+
+                var deckOption = document.createElement("option");
+                deckOption.value = "";
+                deckOption.text = "Select Deck " + (i + 1);
+                deckOption.disabled = true;
+                deckOption.selected = true;
+                deckSelect.appendChild(deckOption);
+
+                for (var k = 0; k < deckSuggestions.length; k++) {
+                    var option = document.createElement("option");
+                    option.value = deckSuggestions[k];
+                    option.text = deckSuggestions[k];
+                    deckSelect.appendChild(option);
+                }
+
+                // Add "Other" option
+                var otherOption = document.createElement("option");
+                otherOption.value = "Other";
+                otherOption.text = "Other";
+                deckSelect.appendChild(otherOption);
+
+                playerRow.appendChild(deckSelect);
+
+                // Create the radio button container
+                var startRadioContainer = document.createElement("div");
+                startRadioContainer.classList.add("radio-container");
+                
+                // Add checkbox for starting the game
+                // Create the radio button for starting the game
+                var startRadio = document.createElement("input");
+                startRadio.type = "radio";
+                startRadio.name = "start_game"; // Ensure all radio buttons have the same name
+                startRadio.value = "player" + (i + 1); // Assign a value to identify the player
+                startRadio.id = "start_game" + (i + 1);
+                startRadio.classList.add("start-radio");
+                startRadio.style.transform = "scale(1.5)"; // Scale the checkbox to make it larger
+                startRadio.required = true; // Make the radio button required
+                
+                // Create the label for the radio button
+                var startLabel = document.createElement("label");
+                startLabel.htmlFor = "start_game" + (i + 1);
+
+                // Append the radio button and label to the player row
+                playerRow.appendChild(startRadio);
+                playerRow.appendChild(startLabel);
+
+                // Append the player row to the container
+                playerInputsContainer.appendChild(playerRow);
+
+
+                
+            }
+        }
+
+        var playerSuggestions = {{ player_names_suggestions | tojson }};
+        var deckSuggestions = {{ commander_names_suggestions | tojson }};
+    
+        // Add event listener to detect when "Other" is selected
+        document.addEventListener('change', function(event) {
+            if (event.target.classList.contains('player-select') && event.target.value === 'Other') {
+                var manualInput = prompt('Enter player name:');
+                if (manualInput !== null) {
+                    // Find the "Other" option in the dropdown
+                    var playerSelect = event.target;
+                    var otherOption = playerSelect.querySelector('option[value="Other"]');
+                    
+                    // Update the "Other" option with the manually entered value
+                    otherOption.value = manualInput;
+                    otherOption.text = manualInput;
+                    
+                    // Optionally, select the manually entered value
+                    otherOption.selected = true;
+                }
+            }
+        });
+
+        // Add event listener to detect when "Other" is selected for deck
+        document.addEventListener('change', function(event) {
+            if (event.target.classList.contains('deck-select') && event.target.value === 'Other') {
+                var manualInput = prompt('Enter deck name:');
+                if (manualInput !== null) {
+                    // Find the "Other" option in the dropdown
+                    var deckSelect = event.target;
+                    var otherOption = deckSelect.querySelector('option[value="Other"]');
+                    
+                    // Update the "Other" option with the manually entered value
+                    otherOption.value = manualInput;
+                    otherOption.text = manualInput;
+                    
+                    // Optionally, select the manually entered value
+                    otherOption.selected = true;
+                }
+            }
+        });
+    </script>
+
+
+</html>

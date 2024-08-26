@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0">
+    <title>mtg tracker</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        nav a {
+            color: #d64161;
+            font-size: 3em;
+            margin-left: 25px;
+            text-decoration: none;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #68656A;
+        }
+        
+        .title{
+            color: #f1e6b2
+        }
+
+        button {
+            margin-right: 10px;
+            font-size: 16px;
+            margin-bottom: 10px;
+            background-color: #f1e6b2;
+        }
+
+        button.selected {
+            background-color: #bf624c;
+            color: #fff;
+        }
+
+        
+    </style>
+</head>
+
+<body>
+    <nav>
+        <a href="#">Tracker</a>
+        <a href="#">About</a>
+    </nav>
+    <hr>
+    <div class="content">
+        {% block content %} {% endblock %}
+    </div>
+</body>
+ 
+</html>

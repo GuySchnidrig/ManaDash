@@ -1,0 +1,6 @@
+Game_ID, Game_Type, Date, Player, Commander, Start, Win, Win_Turn, Win_Type, mv_card, Life, Time (Minutes), Deck_Link, Uploader
+60,Normal,25-03-2024,Aless,Abaddon the Despoiler,0,0,1,Non-Combat Damage,TEST,40,0.0,
+60,Normal,25-03-2024,Aless,Abaddon the Despoiler,0,0,1,Non-Combat Damage,TEST,40,0.0,
+60,Normal,25-03-2024,Aless,Abaddon the Despoiler,0,0,1,Non-Combat Damage,TEST,40,0.0,
+60,Normal,25-03-2024,Aless,Abaddon the Despoiler,0,0,1,Non-Combat Damage,TEST,40,0.0,
+61,Reduced,27-03-2024,Aless,"Aesi, Tyrant of Gyre Strait",0,0,4,Commander Damage,asas,40,0.01,

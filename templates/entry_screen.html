@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0">
+    <title>cmdr tracker</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #68656A;
+        }
+        
+        .title{
+            color: #f1e6b2
+        }
+        button {
+            margin-right: 10px;
+            font-size: 16px;
+            margin-bottom: 10px;
+            background-color: #f1e6b2;
+        }
+        button.selected {
+            background-color: #bf624c;
+            color: #fff;
+        }
+        #cmdr_stats {
+            display: block;
+            margin-top: 10px;
+            font-size: 18px;
+            padding: 10px 20px;
+        }
+        #vintage_cube_stats {
+            display: block;
+            margin-top: 10px;
+            font-size: 18px;
+            padding: 10px 20px;
+        }
+
+        
+    </style>
+</head>
+
+<body>
+    <h1 class = "title">MTG tracker</h1>
+    <div>Select game type:</div>
+    <form action="/submit_commander" method="post" id="playerForm">
+        <div>
+            <button type="submit" id="cmdr_stats">Commander</button>
+        </div>
+    </form>
+    
+    <form action="/submit_vintage" method="post" id="playerForm">
+        <div>
+        <button type="submit" id="vintage_cube_stats">Vintage Cube</button>
+    </div>
+    </form>
+ 
+</html>

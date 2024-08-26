@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0">
+    <title>cmdr tracker</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #68656A;
+            margin-top: auto; /* Increase the top margin */
+            margin-left: 0px; /* Increase the top margin */
+            margin-right: 0px; /* Increase the top margin */
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 60% 60% 15%; 
+            grid-template-rows: 58% 58%;
+            grid-gap: 5px;
+            margin-right: 5px;
+            margin-left: 5px;
+            margin-top: 10px;
+        }
+
+        .player-card {
+            display: grid;
+            grid-template-columns: 33% 33% 33%;
+            grid-template-rows: 20% 80%;
+            background-color: #f1e6b2;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .player-name {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .player-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .deck-name {
+            font-size: auto;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+        .turn-times {
+            margin-left: auto; 
+            margin-right: auto;
+            margin-bottom: 10px;
+        }
+
+        .life-total {
+            font-size: 32px; /* Increased font size */
+            margin: 0 auto; /* Center the life total horizontally */
+            text-align: center; /* Align the text to the center */
+        }
+
+        .life-total button{
+            padding: 10px 20px; /* Adjusted padding for bigger button */
+            font-size: 42px;
+            cursor: pointer;
+            border: none;
+            border-radius: 3px;
+        }
+
+        .adjust-buttons {
+            display: flex;
+            justify-content: flex-start; /* Align buttons to the right */
+            margin-left: 15px; /* Center the adjust-buttons2 horizontally */
+        }
+
+        .adjust-buttons2 {
+            display: flex;
+            justify-content: flex-end; /* Align buttons to the right */
+            margin-right: 15px; /* Center the adjust-buttons2 horizontally */
+        }
+
+        .adjust-buttons button {
+            padding: auto; /* Adjusted padding for button size */
+            font-size: 50px;
+            padding-right: 60px;
+            cursor: pointer;
+            background-color: transparent;
+            color: #f1e6b2;
+            border: none; /* Removed border */
+        }
+        
+
+        .adjust-buttons2 button {
+            padding: auto; /* Adjusted padding for button size */
+            padding-left: 60px;
+            font-size: 40px;
+            cursor: pointer;
+            background-color: transparent;
+            color: #f1e6b2;
+            border: none; /* Removed border */
+           
+        }
+
+        .active {
+            color: #f1e6b2; /* Highlight color for active player name */
+        }
+
+        .active2 button {
+            color: #f1e6b2; /* Set text color to white when active */
+            background: transparent;
+        }
+        
+        .inactive2 button {
+            color: black; 
+            background: transparent;
+        }
+        
+        .turn-container {
+            color: #f1e6b2;
+        }
+
+        end-container{
+            color: #f1e6b2;
+  
+        }
+
+        .player-card:nth-child(1) {
+            grid-row: 1; 
+            grid-column: 1; 
+            transform: rotate(180deg);
+            background-color: #bf624c;
+        }
+
+        .player-card:nth-child(2) {
+            grid-row: 2 ; 
+            grid-column: 1;
+            
+            background-color: #4cbf62;
+        }
+
+        .player-card:nth-child(3) {
+            grid-row: 2; 
+            grid-column: 2; 
+            background-color: #6D597A;
+        }
+
+        .player-card:nth-child(4) {
+            grid-row: 1; 
+            grid-column:2;
+            transform: rotate(180deg);
+            background-color: #4ca9bf;
+        }
+        
+        .pass-turn-form button {
+            padding:auto;
+            padding-top: 35px;
+            padding-bottom: 35px;
+            background-color: #f1e6b2;
+        }
+        .export-csv button {
+            padding:auto;
+            background-color: #f1e6b2;
+        }
+
+  
+        .time-font{
+            white-space: nowrap;
+        }
+                
+        .end-game button {
+            background-color: #f1e6b2;
+            margin-top: 60px; /* Push the form to the bottom */
+
+        }
+
+    </style>
+</head>
+<body>
+       
+       <div class="container">
+        
+        {% for player, life in players.items() %}
+        <div class="player-card {% if player == active_player %}active{% endif %}">
+                <div class="player-name">{{ player }}</div>
+                <div class="turn-times">{{ "Time: %0.1f"|format(players_time[player]/60) }}</div>
+                <div class="deck-name">{{ deck_names[loop.index0] }}</div>
+
+                <div>
+                    <form action="/update_life" method="post" class="adjust-buttons">
+                        <input type="hidden" name="player" value="{{ player }}">
+                        <input type="hidden" name="action" value="decrease">
+                        <button type="submit" name="amount" value="1">-</button>
+                </div>
+
+                <div>
+                </form>
+
+                <form action="/change_active_player" method="POST" class="life-total {% if player == active_player %}active2{% else %}inactive2{% endif %}">
+                    <input type="hidden" name="active_player" value="{{ player }}">
+                    <button type="submit" >{{ life }}</button>
+                </form>
+                </div>
+
+                <div>
+                <form action="/update_life" method="post" class="adjust-buttons2">
+                    <input type="hidden" name="player" value="{{ player }}">
+                    <input type="hidden" name="action" value="increase">
+                    <button type="submit" name="amount" value="1">+</button>
+                </form>
+                </div> 
+            </div>
+
+        {% endfor %}
+
+        
+        <div class="turn-container">
+            Turn: <span id="turn-count">{{ turn_count }}</span>
+            <form action="/pass_turn" method="post" class="pass-turn-form">
+            <button type="submit">Pass Turn</button>
+        </div> 
+
+        <div class="turn-container">
+
+            <div id="turn-time" class="time-font">Turn:</div>
+            <div id="turn-time-total" class="time-font">Total:</div>
+
+            </form>
+        
+            <!-- JavaScript to update turn time -->
+            <script>
+            // Function to update elapsed time immediately and then every second
+            function updateTime() {
+                total_time++;
+                document.getElementById('turn-time').innerHTML = 'Turn: ' + (total_time / 60).toFixed(1);
+                setTimeout(updateTime, 1000); // Schedule the next update after 1 second
+            }
+
+            var total_time = 0; // Total time elapsed since the page was loaded
+
+            // Call updateTime function to display time immediately and then every second
+            updateTime();
+
+            var start_time = {{ start_time }}; // Get the start time passed from Flask
+
+            // Function to update elapsed time every second
+            function updateTotalTime() {
+                var current_time = Math.floor(Date.now() / 1000); // Get current time in seconds
+                var elapsed_time = current_time - start_time; // Calculate elapsed time
+                document.getElementById('turn-time-total').innerHTML = 'Total: ' + (elapsed_time / 60).toFixed(1);
+                setTimeout(updateTotalTime, 1000); // Schedule the next update after 1 second
+            }
+
+            // Call updateTotalTime function to update elapsed time every second
+            updateTotalTime();
+            </script>
+        
+        <div class="end-container">
+        <form id="endGameForm" action="/end_game" method="post" class="end-game ">
+            <button type="submit" id="endGameButton">END</button>
+        </form>
+
+        <script>
+            // JavaScript code to handle the popup
+            document.getElementById("endGameButton").addEventListener("click", function(event) {
+                if (!confirm("Are you sure you want to end the game?")) {
+                    // If user cancels, prevent the default form submission action
+                    event.preventDefault();
+                }
+            });
+        </script>
+        </div> 
+        
+        </div> 
+
+
+        
+        
+</body>
+</html>
