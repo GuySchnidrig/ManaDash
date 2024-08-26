@@ -1,0 +1,7 @@
+taskid: 1
+task: Frontend Backend Structure
+desc: Create the structure for a seperated front and backend
+    - Routing
+    - Frontend 
+    - Restful Backend
+assignee: author
