@@ -8,6 +8,10 @@ from collections import OrderedDict
 import sqlite3
 from dash import Dash, dcc, html
 
+#import routings
+import commander
+import cube
+import backend
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -23,16 +27,6 @@ with open('user_credentials.json', 'r') as file:
     data = json.load(file)
     USER_CREDENTIALS = data['USER_CREDENTIALS']
     
-# Database configuration
-DATABASE = os.path.join(script_directory, 'data', 'cmdr_tracker.db')
-
-def get_db():
-    """Open a new database connection if none exists."""
-    if 'db' not in g:
-        g.db = sqlite3.connect(DATABASE)
-    return g.db
-
-
 # Routes
 @app.route('/')
 def index(): 
@@ -66,49 +60,14 @@ def entry_screen():
     
     return render_template('entry_screen.html')
 
-@app.route('/submit_commander', methods=['POST'])
-def submit_commander():
-    results = []
-    message = ""
+#commander routes
+app.add_url_rule('/commander',view_func=commander.commander)
 
-    try:
-        # Establish the database connection
-        db = get_db()
-        
-        # Create a cursor object using the connection
-        cursor = db.cursor()
-        
-        # Execute the query
-        cursor.execute("SELECT * FROM player_names")
-        
-        # Fetch all the results
-        results = cursor.fetchall()
-        
-        # Close the cursor (SQLite connection will be closed at teardown)
-        cursor.close()
-        
-        # Render the template with data
-        return render_template('commander.html', results=results, message=message)
-    
-    except sqlite3.Error as e:
-        results = ["#"]
-        message = "Not connected: " + str(e)
-        
-        # Render the template with error message
-        return render_template('commander.html', results=results, message=message)
-        
+#cube routes
+app.add_url_rule('/vintage',view_func=cube.vintage)
 
-@app.route('/submit_vintage', methods=['POST'] )
-def submit_vintage():
-    return render_template('vintage.html')
-
+#backend routes
 
 # Remove if pushed to production on www.pythonanywhere.com
 if __name__ == '__main__': 
     app.run(debug=True, host='0.0.0.0')
-    
-    
-# 5ETB9t.z7MAg6Nc DB password
-# 
-# Set DB in MYSQL:
-# SOURCE /home/GuySchnidrig/mysite/data/cmdr_tracker.sql;
