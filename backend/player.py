@@ -1,5 +1,5 @@
 # Import libraries
-from flask import Flask, render_template, request, Response, jsonify, redirect, url_for, session, flash, g
+from flask import g
 from datetime import datetime
 import json
 from collections import OrderedDict
@@ -8,8 +8,11 @@ from dash import Dash, dcc, html
 
 import helpers.sqlite_connect as helper
 
-        
-def commander():
+
+#route: /players
+#method GET
+#get all players
+def get_players():
     results = []
     message = ""
 
@@ -30,19 +33,36 @@ def commander():
         cursor.close()
         
         # Render the template with data
-        return render_template('commander.html', results=results, message=message)
+        return results
     
     except sqlite3.Error as e:
         results = ["#"]
         message = "Not connected: " + str(e)
         
         # Render the template with error message
-        return render_template('commander.html', results=results, message=message)
+        return message
+
+#route: /players/<playername>
+#method GET
+#get a player
+def get_player(playername):
+    pass
 
 
-    
-    
-# 5ETB9t.z7MAg6Nc DB password
-# 
-# Set DB in MYSQL:
-# SOURCE /home/GuySchnidrig/mysite/data/cmdr_tracker.sql;
+#route: /players
+#method POST
+#create a player
+def create_player():
+    pass
+
+#route: /players/<playername>
+#method PUT
+#update a player
+def update_player(playername):
+    pass
+
+#route: /players/<playername>
+#method DELTE
+#delete a player
+def delete_player(playername):
+    pass
