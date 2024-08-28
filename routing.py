@@ -9,15 +9,16 @@ import sqlite3
 from dash import Dash, dcc, html
 from flask_bootstrap import Bootstrap
 
-#import routings
+# Import routings
 import commander
 import cube
 import backend.player as player
 
-# Import Dash application
+# Import dash applications
 from dash_application_commander import create_dash_application_commander
 from dash_application_vintage import create_dash_application_vintage
 
+# Initiate app
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
@@ -38,7 +39,8 @@ os.chdir(script_directory)
 with open('user_credentials.json', 'r') as file:
     data = json.load(file)
     USER_CREDENTIALS = data['USER_CREDENTIALS']
-    
+
+
 # Routes
 @app.route('/')
 def index(): 
@@ -74,6 +76,7 @@ def entry_screen():
 
 #commander routes
 app.add_url_rule('/commander',view_func=commander.commander)
+
 
 #cube routes
 app.add_url_rule('/vintage',view_func=cube.vintage)
