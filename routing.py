@@ -72,8 +72,3 @@ app.add_url_rule('/players',view_func=player.get_players)
 # Remove if pushed to production on www.pythonanywhere.com
 if __name__ == '__main__': 
     app.run(debug=True, host='0.0.0.0')
-
-# 5ETB9t.z7MAg6Nc DB password
-# 
-# Set DB in MYSQL:
-# SOURCE /home/GuySchnidrig/mysite/data/cmdr_tracker.sql;
