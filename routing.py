@@ -7,14 +7,21 @@ import json
 from collections import OrderedDict
 import sqlite3
 from dash import Dash, dcc, html
+from flask_bootstrap import Bootstrap
 
 #import routings
 import commander
 import cube
 import backend.player as player
 
+# Import Dash application
+from dash_applcation import create_dash_application
+
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
+
+Bootstrap(app)
+create_dash_application(app)
 
 # Get the directory of the currently executing script
 script_directory = os.path.dirname(__file__)
