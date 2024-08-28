@@ -14,10 +14,9 @@ df = pd.DataFrame(
     }
 )
 
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 def create_dash_application_commander(flask_app):
-    dash_app = dash.Dash(server=flask_app, name="Dashboard", url_base_pathname="/commander/", external_stylesheets=external_stylesheets)
+    dash_app = dash.Dash(server=flask_app, name="Dashboard", url_base_pathname="/commander/")
     dash_app.layout = html.Div(
         children=[
             html.H1(children="Hello Dash"),
