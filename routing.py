@@ -15,13 +15,18 @@ import cube
 import backend.player as player
 
 # Import Dash application
-from dash_applcation import create_dash_application
+from dash_application_commander import create_dash_application_commander
+from dash_application_vintage import create_dash_application_vintage
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
+# Add Boorstrap
 Bootstrap(app)
-create_dash_application(app)
+
+# Create Dashboards
+create_dash_application_commander(app)
+create_dash_application_vintage(app)
 
 # Get the directory of the currently executing script
 script_directory = os.path.dirname(__file__)

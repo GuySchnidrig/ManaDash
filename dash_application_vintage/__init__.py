@@ -15,8 +15,8 @@ df = pd.DataFrame(
 )
 
 
-def create_dash_application(flask_app):
-    dash_app = dash.Dash(server=flask_app, name="Dashboard", url_base_pathname="/dash/")
+def create_dash_application_vintage(flask_app):
+    dash_app = dash.Dash(server=flask_app, name="Dashboard", url_base_pathname="/vintage/")
     dash_app.layout = html.Div(
         children=[
             html.H1(children="Hello Dash"),
