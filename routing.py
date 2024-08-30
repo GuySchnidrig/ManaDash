@@ -25,9 +25,7 @@ app.secret_key = os.urandom(24)
 # Add Boorstrap
 Bootstrap(app)
 
-# Create Dashboards
-create_dash_application_commander(app)
-create_dash_application_vintage(app)
+
 
 # Get the directory of the currently executing script
 script_directory = os.path.dirname(__file__)
@@ -74,12 +72,14 @@ def entry_screen():
     
     return render_template('entry_screen.html')
 
+
 #commander routes
 app.add_url_rule('/commander',view_func=commander.commander)
-
+create_dash_application_commander(app)
 
 #cube routes
 app.add_url_rule('/vintage',view_func=cube.vintage)
+create_dash_application_vintage(app)
 
 #backend routes
 app.add_url_rule('/players',view_func=player.get_players)
