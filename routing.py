@@ -1,13 +1,9 @@
 # Import libraries
-from flask import Flask, render_template, request, Response, jsonify, redirect, url_for, session, flash, g
-from io import StringIO
+from flask import Flask, render_template, request,redirect, url_for, session, flash, g
 import os
-from datetime import datetime
 import json
-from collections import OrderedDict
-import sqlite3
-from dash import Dash, dcc, html
 from flask_bootstrap import Bootstrap
+from flask import redirect, url_for, session, request
 
 # Import routings
 import commander
@@ -24,8 +20,6 @@ app.secret_key = os.urandom(24)
 
 # Add Boorstrap
 Bootstrap(app)
-
-
 
 # Get the directory of the currently executing script
 script_directory = os.path.dirname(__file__)
@@ -73,6 +67,10 @@ def entry_screen():
     return render_template('entry_screen.html')
 
 
+@app.route('/redirect_to_flask')
+def redirect_to_flask():
+    return redirect(url_for('entry_screen'))
+
 #commander routes
 app.add_url_rule('/commander',view_func=commander.commander)
 create_dash_application_commander(app)
@@ -83,6 +81,7 @@ create_dash_application_vintage(app)
 
 #backend routes
 app.add_url_rule('/players',view_func=player.get_players)
+
 
 # Remove if pushed to production on www.pythonanywhere.com
 if __name__ == '__main__': 
