@@ -1,8 +1,11 @@
 import dash
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dcc
+from dash import html
 import plotly.express as px
 import pandas as pd
+import dash_bootstrap_components as dbc
+from dash import dash_table
+from backend.game_data import get_games
 
 # assume you have a "long-form" data frame
 # see https://plotly.com/python/px-arguments/ for more options
