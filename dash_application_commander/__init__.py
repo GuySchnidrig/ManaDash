@@ -69,12 +69,3 @@ def create_dash_application_commander(flask_app):
             return create_landing_page(game_data_df, player_color_map)
 
     return dash_app
-
-
-    
-
-    
-    
-
-
-    
