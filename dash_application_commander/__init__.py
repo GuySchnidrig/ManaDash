@@ -2,11 +2,7 @@
 import dash
 from dash import dcc
 from dash import html
-import plotly.express as px
-import pandas as pd
 import dash_bootstrap_components as dbc
-from dash import dash_table
-import matplotlib.pyplot as plt
 import seaborn as sns
 import matplotlib.colors as mcolors
 
