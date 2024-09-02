@@ -1,18 +1,16 @@
 {% extends "base.html" %}
 
 {% block content %}
-<body>
-    <div style="margin-top: 75px" >Select game type:</div>
-    <form action="/commander/" method="get" id="playerForm">
-        <div>
-            <button type="submit" id="cmdr_stats">Commander</button>
-        </div>
-    </form>
-    
-    <form action="/vintage/" method="get" id="playerForm">
-        <div>
-        <button type="submit" id="vintage_cube_stats">Vintage Cube</button>
+<body style="background-color: grey; color: white;">
+    <div style="margin-top: 75px; text-align: center;">
+        <p>Select game type:</p>
+        <form action="/commander/" method="get" id="playerForm" style="display: inline-block; margin-right: 10px;">
+            <button type="submit" id="cmdr_stats" style="font-size: 28px; padding: 10px 20px; background-color: #333; color: white; border: none; border-radius: 5px;">Commander</button>
+        </form>
+        
+        <form action="/vintage/" method="get" id="playerForm" style="display: inline-block;">
+            <button type="submit" id="vintage_cube_stats" style="font-size: 28px; padding: 10px 20px; background-color: #333; color: white; border: none; border-radius: 5px;">Vintage Cube</button>
+        </form>
     </div>
-    </form>
 </body>
 {% endblock %}
