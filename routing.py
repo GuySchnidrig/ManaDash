@@ -6,8 +6,8 @@ from flask_bootstrap import Bootstrap
 from flask import redirect, url_for, session, request
 
 # Import routings
-import commander
-import cube
+# import commander
+# import cube
 import backend.player as player
 
 # Import dash applications
@@ -72,11 +72,11 @@ def redirect_to_flask():
     return redirect(url_for('entry_screen'))
 
 #commander routes
-app.add_url_rule('/commander',view_func=commander.commander)
+# app.add_url_rule('/commander',view_func=commander.commander)
 create_dash_application_commander(app)
 
 #cube routes
-app.add_url_rule('/vintage',view_func=cube.vintage)
+#app.add_url_rule('/vintage',view_func=cube.vintage)
 create_dash_application_vintage(app)
 
 #backend routes
