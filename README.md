@@ -17,8 +17,8 @@
 
 1. **Clone the repository**:
     ```bash
-    git clone https://github.com/yourusername/manadash.git
-    cd manadash
+    git clone https://github.com/GuySchnidrig/ManaDash.git
+    cd ManaDash
     ```
 
 2. **Create a virtual environment**:
@@ -44,14 +44,13 @@
 
 5. **Run the application**:
     ```bash
-    python app.py
+    python routing.py
     ```
 
     By default, the application runs on `http://0.0.0.0:5000`.
 
 # Project Structure
 ```bash
-.
 manadash/
 ├── app.py                    # Main Flask application
 ├── backend/
