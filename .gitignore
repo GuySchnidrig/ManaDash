@@ -3,6 +3,7 @@ user_credentials.json
 
 # Ignore build directory
 /cmdr_stats_env.conda
+*.conda
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
