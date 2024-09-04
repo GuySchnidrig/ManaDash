@@ -14,7 +14,7 @@ import matplotlib.colors as mcolors
 from backend.game_data import get_games
 
 def create_game_data_page(game_data_df):
-    sorted_game_data_df = game_data_df.sort_values(by='game_id', ascending=False)
+    sorted_game_data_df = game_data_df.sort_values(by='id', ascending=False)
     columns_to_hide = {'uploader', 'color'}    
     visible_columns = [col for col in game_data_df.columns if col not in columns_to_hide]
 

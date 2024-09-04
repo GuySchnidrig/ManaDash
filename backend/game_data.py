@@ -4,7 +4,7 @@ import os
  
 # Define the path to your SQLite database relative to the root of your project
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Go up one directory
-DB_PATH = os.path.join(ROOT_DIR, 'data', 'cmdr_tracker.db')
+DB_PATH = os.path.join(ROOT_DIR, 'data', 'cmdr_tracker_v2.db')
 
 def get_games():
     try:
