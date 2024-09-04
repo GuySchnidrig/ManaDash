@@ -49,7 +49,9 @@ Manadash is a web application built with Flask that integrates interactive Dash 
 
     By default, the application runs on `http://0.0.0.0:5000`.
 
-## Project Structure
+# Project Structure
+```bash
+.
 manadash/
 ├── app.py                    # Main Flask application
 ├── backend/
@@ -62,7 +64,7 @@ manadash/
 ├── static/                   # Static files (CSS, JS, images)
 ├── requirements.txt          # Python dependencies
 └── user_credentials.json     # User credentials for login (not included in repo)
-
+```
 ## Usage
 
 - **Login**: Navigate to `/login` to access the login page. Use the credentials specified in the `user_credentials.json` file.
