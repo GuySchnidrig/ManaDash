@@ -10,9 +10,12 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import matplotlib.colors as mcolors
 
+from backend.game_data import get_vintage_standings
+
 # Import local functions and pages
 
-def create_game_data_page(vintage_standings_df):
+def create_standings_page():
+    vintage_standings_df = get_vintage_standings()
     # Sort the DataFrame by 'draft_id' in descending order
     sorted_game_data_df = vintage_standings_df.sort_values(by='draft_id', ascending=False)
 

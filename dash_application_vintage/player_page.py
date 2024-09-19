@@ -13,7 +13,7 @@ import matplotlib.colors as mcolors
 # Import local functions and pages
 from backend.game_data import get_games
 
-def create_graph_page():
+def create_player_page():
     df = pd.DataFrame(
     {
         "Fruit": ["Apples", "Oranges", "Bananas", "Apples", "Oranges", "Bananas"],

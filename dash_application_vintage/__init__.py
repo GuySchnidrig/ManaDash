@@ -7,23 +7,19 @@ import seaborn as sns
 import matplotlib.colors as mcolors
 
 # Import local functions and pages
-from backend.game_data import get_vintage_drafts
-from backend.game_data import get_vintage_standings
-from backend.game_data import get_vintage_decks
 from backend.game_data import get_vintage_players
 
 from dash_application_vintage.landing_page import create_landing_page
-from dash_application_vintage.graph_page import create_graph_page
-from dash_application_vintage.data_page import create_game_data_page
+from dash_application_vintage.decks_page import create_decks_page
+from dash_application_vintage.player_page import create_player_page
+
+from dash_application_vintage.data_page import create_standings_page
 
 # Get game data
-vintage_drafts_df = get_vintage_drafts()
-vintage_standings_df = get_vintage_standings()
-vintage_decks_df = get_vintage_decks()
 vintage_players_df = get_vintage_players()
 
 # Generate color mapping
-unique_players = vintage_players_df['player_id'].unique()
+unique_players = vintage_players_df['player_name'].unique()
 palette = sns.color_palette("hls", len(unique_players), desat = 0.85)
 color_list = [mcolors.to_hex(color) for color in palette]
 
@@ -41,8 +37,9 @@ def create_dash_application_vintage(flask_app):
         dbc.NavbarSimple(
             children=[
                 dbc.NavLink("Vintage", href="/vintage/"),
-                dbc.NavLink("Graphs", href="/vintage/graphs"),
-                dbc.NavLink("Game Data", href="/vintage/game_data")
+                dbc.NavLink("Decks", href="/vintage/decks"),
+                dbc.NavLink("Player", href="/vintage/player"),
+                dbc.NavLink("Standings", href="/vintage/standings")
             ],
             brand=[
                 html.Img(
@@ -65,13 +62,15 @@ def create_dash_application_vintage(flask_app):
     )
     
     def display_page(pathname):
-        if pathname == '/vintage/graphs':
-            return create_graph_page()
-        elif pathname == '/vintage/game_data':
-            return create_game_data_page(vintage_standings_df)
+        if pathname == '/vintage/player':
+            return create_player_page()
+        elif pathname == '/vintage/decks':
+            return create_decks_page()
+        elif pathname == '/vintage/standings':
+            return create_standings_page()
         elif pathname == '/':
             return dcc.Location(pathname='/redirect_to_flask', id='redirect_to_flask')
         else:
-            return create_landing_page(vintage_drafts_df, vintage_standings_df, vintage_decks_df, vintage_players_df, player_color_map)
+            return create_landing_page(player_color_map)
 
     return dash_app
