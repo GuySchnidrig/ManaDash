@@ -14,11 +14,12 @@ from backend.game_data import get_vintage_players
 from dash_application_vintage.landing_page import create_landing_page
 from dash_application_vintage.decks_page import create_decks_page
 from dash_application_vintage.player_page import create_player_page
+from dash_application_vintage.cards_page import create_cards_page
 
 from dash_application_vintage.data_page import create_standings_page
 from backend.game_data import get_vintage_players, get_decks_with_standings
 
-# Get game data
+# Get player data
 vintage_players_df = get_vintage_players()
 
 # Generate color mapping
@@ -67,6 +68,7 @@ def create_dash_application_vintage(flask_app):
                 dbc.NavLink("Vintage", href="/vintage/"),
                 dbc.NavLink("Decks", href="/vintage/decks"),
                 dbc.NavLink("Player", href="/vintage/player"),
+                dbc.NavLink("Cards", href="/vintage/cards"),
                 dbc.NavLink("Standings", href="/vintage/standings")
             ],
             brand=[
@@ -134,6 +136,8 @@ def create_dash_application_vintage(flask_app):
             return create_player_page()
         elif pathname == '/vintage/decks':
             return create_decks_page(player_color_map)
+        elif pathname == '/vintage/cards':
+            return create_cards_page()
         elif pathname == '/vintage/standings':
             return create_standings_page()
         elif pathname == '/':
