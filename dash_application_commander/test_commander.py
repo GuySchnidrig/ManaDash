@@ -74,6 +74,7 @@ fig1 = px.bar(
         title='Number of Games Played by Each Player',
         labels={'Played_Games': 'Number of Games', 'player_name': 'Player Name'}
         )
+
 fig1.update_layout(
     plot_bgcolor='white',
     showlegend=False,)
