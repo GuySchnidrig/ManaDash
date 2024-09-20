@@ -99,7 +99,7 @@ def create_landing_page(player_color_map):
         values='Games_won',
         color='player_name',
         color_discrete_map=player_color_map,
-        title='Total Games Won',
+        title='Drafts Won',
     )
     piewon.update_layout(
         plot_bgcolor='white',
