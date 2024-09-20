@@ -129,7 +129,6 @@ def create_landing_page(game_data_df, player_color_map):
 
     # Return the layout with graphs and multiple tables arranged in a grid
     return html.Div([
-        html.Div([
             dcc.Graph(figure=fig1),
             html.Div([
                 html.Div(summary_table, style={'height': '100px', 'overflowY': 'auto'}),  # Adjust height as needed
@@ -141,10 +140,14 @@ def create_landing_page(game_data_df, player_color_map):
             }),
             dcc.Graph(figure=fig3),
             dcc.Graph(figure=fig4)
-        ], style={
-            'display': 'grid',
-            'gridTemplateColumns': 'repeat(2, 1fr)',
-            'gridTemplateRows': 'auto auto',  # Adjusts rows to the content automatically
-            'gap': '20px'
-        })
-    ])
+    ], className="responsive-grid", style={
+        'display': 'grid',
+        'gridTemplateColumns': 'repeat(2, 1fr)',  # 2 columns by default
+        'gridTemplateRows': 'auto auto',          # Adjust rows to the content automatically
+        'gap': '20px',
+        # Add a media query to handle responsive design
+        '@media (max-width: 768px)': {
+            'gridTemplateColumns': '1fr'  # On small screens, stack items vertically
+        }
+    })
+    

@@ -11,29 +11,107 @@ import seaborn as sns
 import matplotlib.colors as mcolors
 
 # Import local functions and pages
-from backend.game_data import get_games
+from backend.game_data import get_vintage_standings
+from backend.game_data import get_vintage_decks
+from backend.game_data import get_decks_with_standings
+def create_decks_page(player_color_map):
+    
+    vintage_decks_df = get_vintage_decks()
+    decks_with_standings = get_decks_with_standings()
+    
+    # Archtypes plot
+    summary_df_bar = vintage_decks_df.groupby(['archetype']).agg(arche_types_count=('deck_id', 'count')).reset_index()
+    summary_df_bar = summary_df_bar.sort_values('arche_types_count', ascending=False)
 
-def create_decks_page():
-    df = pd.DataFrame(
-    {
-        "Fruit": ["Apples", "Oranges", "Bananas", "Apples", "Oranges", "Bananas"],
-        "Amount": [4, 1, 2, 2, 4, 5],
-        "City": ["SF", "SF", "SF", "Montreal", "Montreal", "Montreal"],
-    })
-    fig1 = px.scatter(df, x='Fruit', y='Amount', color='City', title='Games Played')
-    fig2 = px.scatter(df, x='Fruit', y='Amount', color='City', title='Statistics')
-    fig3 = px.scatter(df, x='Fruit', y='Amount', color='City', title='Total Games Won')
-    fig4 = px.scatter(df, x='Fruit', y='Amount', color='City', title='Mana Value Distribution of all decks played')
+    archetype_fig = px.bar(
+    summary_df_bar,
+    x='archetype',
+    y='arche_types_count',
+    color='archetype',
+    color_discrete_map=player_color_map,
+    title='Archetypes',
+    labels={'arche_types_count': 'Count', 'archetype': ''},
+    )
+    
+    archetype_fig.update_layout(
+        plot_bgcolor='white',
+        showlegend=False
+    )
+    
+    # Decktype plot
+    summary_df_bar = vintage_decks_df.groupby(['decktype']).agg(deck_types_count=('deck_id', 'count')).reset_index()
+    summary_df_bar = summary_df_bar.sort_values('deck_types_count', ascending=False)
 
+    decktype_fig = px.bar(
+    summary_df_bar,
+    x='decktype',
+    y='deck_types_count',
+    color='decktype',
+    color_discrete_map=player_color_map,
+    title='Decktype',
+    labels={'deck_types_count': 'Count', 'decktype': ''},
+    )
+    
+    decktype_fig.update_layout(
+        plot_bgcolor='white',
+        showlegend=False
+    )
+    
+    # Archtypes win plot
+    decks_with_standings_filter = decks_with_standings[decks_with_standings['standing'] == 1]
+    
+    summary_decks_with_standings = decks_with_standings_filter.groupby(['archetype']).agg(arche_types_count=('deck_id', 'count')).reset_index()
+    summary_decks_with_standings = summary_decks_with_standings.sort_values('arche_types_count', ascending=False)
+
+    win_archetype_fig = px.bar(
+    summary_decks_with_standings,
+    x='archetype',
+    y='arche_types_count',
+    color='archetype',
+    color_discrete_map=player_color_map,
+    title='Winning Archetypes',
+    labels={'arche_types_count': 'Wins', 'archetype': ''},
+    )
+    
+    win_archetype_fig.update_layout(
+        plot_bgcolor='white',
+        showlegend=False
+    )
+    
+    # Archtypes win plot
+    decks_with_standings_filter = decks_with_standings[decks_with_standings['standing'] == 1]
+    summary_decks_with_standings_decktype = decks_with_standings_filter.groupby(['decktype']).agg(deck_types_count=('deck_id', 'count')).reset_index()
+    summary_decks_with_standings_decktype = summary_decks_with_standings_decktype.sort_values('deck_types_count', ascending=False)
+
+    win_decktype_fig = px.bar(
+    summary_decks_with_standings_decktype,
+    x='decktype',
+    y='deck_types_count',
+    color='decktype',
+    color_discrete_map=player_color_map,
+    title='Winning Decktypes',
+    labels={'deck_types_count': 'Wins', 'decktype': ''},
+    )
+    
+    win_decktype_fig.update_layout(
+        plot_bgcolor='white',
+        showlegend=False
+    )
+    
+
+  # Return the layout with graphs and multiple tables arranged in a grid
     return html.Div([
-        html.Div([
-            dcc.Graph(figure=fig1),
-            dcc.Graph(figure=fig2),
-            dcc.Graph(figure=fig3),
-            dcc.Graph(figure=fig4)
-        ], style={
-            'display': 'grid',
-            'gridTemplateColumns': 'repeat(2, 1fr)',
-            'gap': '20px'
-        })
-    ])
+            dcc.Graph(figure=archetype_fig),
+            dcc.Graph(figure=decktype_fig),
+            dcc.Graph(figure=win_archetype_fig),
+            dcc.Graph(figure=win_decktype_fig)
+        ], className="responsive-grid", style={
+        'display': 'grid',
+        'gridTemplateColumns': 'repeat(2, 1fr)',  # 2 columns by default
+        'gridTemplateRows': 'auto auto',          # Adjust rows to the content automatically
+        'gap': '20px',
+        # Add a media query to handle responsive design
+        '@media (max-width: 768px)': {
+            'gridTemplateColumns': '1fr'  # On small screens, stack items vertically
+        }
+    })

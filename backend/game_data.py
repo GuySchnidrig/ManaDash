@@ -73,3 +73,49 @@ def get_vintage_players():
         df = pd.DataFrame()  # Return an empty DataFrame on error
 
     return df
+
+def get_decks_with_standings():
+    try:
+        # Connect to the SQLite database
+        with sqlite3.connect(DB_PATH_vintage) as db:
+            # Use pandas to execute the SQL query and load data into a DataFrame
+            query = """
+                SELECT decks.deck_id, archetype, decktype, draft_standing.draft_standing_id, 
+                       draft_standing.draft_id, draft_standing.player_id, 
+                       draft_standing.standing, draft_standing.points, 
+                       draft_standing.omp, draft_standing.gwp, draft_standing.ogp
+                FROM decks
+                JOIN draft_standing ON decks.deck_id = draft_standing.deck_id
+            """
+            df = pd.read_sql_query(query, db)
+    except sqlite3.Error as e:
+        print(f"An error occurred: {e}")
+        df = pd.DataFrame()  # Return an empty DataFrame on error
+
+    return df
+
+def get_full_game_stats_table():
+    try:
+        # Connect to the SQLite database
+        with sqlite3.connect(DB_PATH_vintage) as db:
+            # Use pandas to execute the SQL query and load data into a DataFrame
+            query = """
+                SELECT drafts.date,
+                       drafts.season_id,
+                       players.player_name,  
+                       archetype, decktype, 
+                       draft_standing.draft_id,draft_standing.standing, 
+                       draft_standing.points, draft_standing.omp, 
+                       draft_standing.gwp, draft_standing.ogp
+                       
+                FROM decks
+                JOIN draft_standing ON decks.deck_id = draft_standing.deck_id
+                JOIN players ON draft_standing.player_id = players.player_id
+                JOIN drafts ON draft_standing.draft_id = drafts.draft_id
+            """
+            df = pd.read_sql_query(query, db)
+    except sqlite3.Error as e:
+        print(f"An error occurred: {e}")
+        df = pd.DataFrame()  # Return an empty DataFrame on error
+
+    return df

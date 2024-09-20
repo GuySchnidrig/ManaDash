@@ -75,6 +75,7 @@ def redirect_to_flask():
 # app.add_url_rule('/commander',view_func=commander.commander)
 create_dash_application_commander(app)
 
+
 #cube routes
 #app.add_url_rule('/vintage',view_func=cube.vintage)
 create_dash_application_vintage(app)

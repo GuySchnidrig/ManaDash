@@ -29,6 +29,31 @@ def create_dash_application_commander(flask_app):
                          name="commander_dash", 
                          url_base_pathname="/commander/", 
                          suppress_callback_exceptions=True)
+    
+        # Set custom index string with favicon, but include required Dash placeholders
+    dash_app.index_string = '''
+    <!DOCTYPE html>
+    <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+            <title>ManaDash</title>
+            {%metas%}
+            {%css%}
+        </head>
+        <body>
+            <div id="react-entry-point">
+                {%app_entry%}
+            </div>
+            <footer>
+                {%config%}
+                {%scripts%}
+                {%renderer%}
+            </footer>
+        </body>
+    </html>
+    '''
 
     dash_app.layout = html.Div([
         dcc.Location(id='url', refresh=False),

@@ -26,14 +26,18 @@ def create_graph_page():
     fig4 = px.scatter(df, x='Fruit', y='Amount', color='City', title='Mana Value Distribution of all decks played')
 
     return html.Div([
-        html.Div([
             dcc.Graph(figure=fig1),
             dcc.Graph(figure=fig2),
             dcc.Graph(figure=fig3),
             dcc.Graph(figure=fig4)
-        ], style={
-            'display': 'grid',
-            'gridTemplateColumns': 'repeat(2, 1fr)',
-            'gap': '20px'
-        })
-    ])
+    ], className="responsive-grid", style={
+        'display': 'grid',
+        'gridTemplateColumns': 'repeat(2, 1fr)',  # 2 columns by default
+        'gridTemplateRows': 'auto auto',          # Adjust rows to the content automatically
+        'gap': '20px',
+        # Add a media query to handle responsive design
+        '@media (max-width: 768px)': {
+            'gridTemplateColumns': '1fr'  # On small screens, stack items vertically
+        }
+    })
+    

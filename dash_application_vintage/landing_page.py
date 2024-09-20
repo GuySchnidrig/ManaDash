@@ -22,40 +22,46 @@ def create_landing_page(player_color_map):
     vintage_players_df = get_vintage_players()
 
     combined_df = pd.merge(vintage_standings_df, vintage_players_df, on='player_id', how='left')
-
-
-    # Filler
-    df = pd.DataFrame(
-    {
-        "Fruit": ["Apples", "Oranges", "Bananas", "Apples", "Oranges", "Bananas"],
-        "Amount": [4, 1, 2, 2, 4, 5],
-        "City": ["SF", "SF", "SF", "Montreal", "Montreal", "Montreal"],
-    })
-    fig2 = px.scatter(df, x='Fruit', y='Amount', color='City', title='Statistics')
-    fig3 = px.scatter(df, x='Fruit', y='Amount', color='City', title='Total Games Won')
-    fig4 = px.scatter(df, x='Fruit', y='Amount', color='City', title='Mana Value Distribution of all decks played')
-
-    vintage_players_df = pd.DataFrame(vintage_players_df)
-
-    # Create summary DataFrame for bar plot
+    
+    # Drafts plot
+    # Create summary DataFrame for Drafts plot
     summary_df_bar = combined_df.groupby(['player_name']).agg(Played_Games=('draft_id', 'count')).reset_index()
     summary_df_bar = summary_df_bar.sort_values('Played_Games', ascending=False)
     
-    # Bar plot
-    fig1 = px.bar(
+ 
+    draftbar = px.bar(
         summary_df_bar,
         x='player_name',
         y='Played_Games',
         color='player_name',
         color_discrete_map=player_color_map,
-        title='Number of Games Played by Each Player',
-        labels={'Played_Games': 'Number of Games', 'player_id': 'Player Name'},
+        title='Drafts',
+        labels={'Played_Games': 'Count', 'player_name': ''},
     )
-    fig1.update_layout(
+    draftbar.update_layout(
         plot_bgcolor='white',
         showlegend=False
     )
 
+    # Archtypes plot
+    # Create summary DataFrame for Drafts plot
+    summary_df_bar = vintage_decks_df.groupby(['archetype']).agg(arche_types_count=('deck_id', 'count')).reset_index()
+    summary_df_bar = summary_df_bar.sort_values('arche_types_count', ascending=False)
+
+    archetype_fig = px.bar(
+    summary_df_bar,
+    x='archetype',
+    y='arche_types_count',
+    color='archetype',
+    color_discrete_map=player_color_map,
+    title='Archetypes',
+    labels={'arche_types_count': 'Count', 'archetype': ''},
+    )
+    
+    archetype_fig.update_layout(
+        plot_bgcolor='white',
+        showlegend=False
+    )
     
     # Create summary DataFrame for the main summary table
     summary_table = {
@@ -87,7 +93,7 @@ def create_landing_page(player_color_map):
     game_data_df_pie = combined_df[combined_df['standing'] == 1]  # Filter for wins
     summary_df_pie = game_data_df_pie.groupby(['player_name']).agg(Games_won=('draft_id', 'count')).reset_index()
     
-    fig3 = px.pie(
+    piewon = px.pie(
         summary_df_pie,
         names='player_name',
         values='Games_won',
@@ -95,7 +101,7 @@ def create_landing_page(player_color_map):
         color_discrete_map=player_color_map,
         title='Total Games Won',
     )
-    fig3.update_layout(
+    piewon.update_layout(
         plot_bgcolor='white',
         paper_bgcolor='white',
         showlegend=True, 
@@ -104,14 +110,18 @@ def create_landing_page(player_color_map):
 
     # Return the layout with graphs and multiple tables arranged in a grid
     return html.Div([
-            dcc.Graph(figure=fig1),
-            html.Div(summary_table, style={'height': '400px', 'overflowY': 'auto'}),  
-            dcc.Graph(figure=fig3),
-            dcc.Graph(figure=fig4)
-        ], style={
-            'display': 'grid',
-            'gridTemplateColumns': 'repeat(2, 1fr)',
-            'gridTemplateRows': 'auto auto',  # Adjusts rows to the content automatically
-            'gap': '20px'
-        })
+        dcc.Graph(figure=draftbar),  
+        dcc.Graph(figure=archetype_fig),  
+        dcc.Graph(figure=piewon),
+        html.Div(summary_table, style={'height': '400px', 'overflowY': 'auto'})
+    ], className="responsive-grid", style={
+        'display': 'grid',
+        'gridTemplateColumns': 'repeat(2, 1fr)',  # 2 columns by default
+        'gridTemplateRows': 'auto auto',          # Adjust rows to the content automatically
+        'gap': '20px',
+        # Add a media query to handle responsive design
+        '@media (max-width: 768px)': {
+            'gridTemplateColumns': '1fr'  # On small screens, stack items vertically
+        }
+    })
     
