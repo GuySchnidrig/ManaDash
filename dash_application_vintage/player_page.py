@@ -3,7 +3,7 @@ import plotly.express as px
 import dash_bootstrap_components as dbc
 from backend.game_data import get_vintage_players
 
-def create_player_page():
+def create_player_page(player_color_map, archetype_color_map, decktype_color_map):
     # Load data
     players_df = get_vintage_players()
     

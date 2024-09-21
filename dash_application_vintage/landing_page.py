@@ -15,7 +15,7 @@ from backend.game_data import get_vintage_standings
 from backend.game_data import get_vintage_decks
 from backend.game_data import get_vintage_players
 
-def create_landing_page(player_color_map):
+def create_landing_page(player_color_map, archetype_color_map):
     vintage_drafts_df = get_vintage_drafts()
     vintage_standings_df = get_vintage_standings()
     vintage_decks_df = get_vintage_decks()
@@ -53,7 +53,7 @@ def create_landing_page(player_color_map):
     x='archetype',
     y='arche_types_count',
     color='archetype',
-    color_discrete_map=player_color_map,
+    color_discrete_map=archetype_color_map,
     title='Archetypes',
     labels={'arche_types_count': 'Count', 'archetype': ''},
     )

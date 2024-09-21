@@ -14,7 +14,7 @@ import matplotlib.colors as mcolors
 from backend.game_data import get_vintage_standings
 from backend.game_data import get_vintage_decks
 from backend.game_data import get_decks_with_standings
-def create_decks_page(player_color_map):
+def create_decks_page(player_color_map, archetype_color_map, decktype_color_map):
     
     vintage_decks_df = get_vintage_decks()
     decks_with_standings = get_decks_with_standings()
@@ -28,7 +28,7 @@ def create_decks_page(player_color_map):
     x='archetype',
     y='arche_types_count',
     color='archetype',
-    color_discrete_map=player_color_map,
+    color_discrete_map=archetype_color_map,
     title='Archetypes',
     labels={'arche_types_count': 'Count', 'archetype': ''},
     )
@@ -38,7 +38,7 @@ def create_decks_page(player_color_map):
         showlegend=False
     )
     
-    # Decktype plot
+    # Decktypes plot
     summary_df_bar = vintage_decks_df.groupby(['decktype']).agg(deck_types_count=('deck_id', 'count')).reset_index()
     summary_df_bar = summary_df_bar.sort_values('deck_types_count', ascending=False)
 
@@ -47,7 +47,7 @@ def create_decks_page(player_color_map):
     x='decktype',
     y='deck_types_count',
     color='decktype',
-    color_discrete_map=player_color_map,
+    color_discrete_map=decktype_color_map,
     title='Decktype',
     labels={'deck_types_count': 'Count', 'decktype': ''},
     )
@@ -68,7 +68,7 @@ def create_decks_page(player_color_map):
     x='archetype',
     y='arche_types_count',
     color='archetype',
-    color_discrete_map=player_color_map,
+    color_discrete_map=archetype_color_map,
     title='Winning Archetypes',
     labels={'arche_types_count': 'Wins', 'archetype': ''},
     )
@@ -78,7 +78,7 @@ def create_decks_page(player_color_map):
         showlegend=False
     )
     
-    # Archtypes win plot
+    # Decktpyes win plot
     decks_with_standings_filter = decks_with_standings[decks_with_standings['standing'] == 1]
     summary_decks_with_standings_decktype = decks_with_standings_filter.groupby(['decktype']).agg(deck_types_count=('deck_id', 'count')).reset_index()
     summary_decks_with_standings_decktype = summary_decks_with_standings_decktype.sort_values('deck_types_count', ascending=False)
@@ -88,7 +88,7 @@ def create_decks_page(player_color_map):
     x='decktype',
     y='deck_types_count',
     color='decktype',
-    color_discrete_map=player_color_map,
+    color_discrete_map=decktype_color_map,
     title='Winning Decktypes',
     labels={'deck_types_count': 'Wins', 'decktype': ''},
     )

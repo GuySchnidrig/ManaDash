@@ -17,17 +17,33 @@ from dash_application_vintage.player_page import create_player_page
 from dash_application_vintage.cards_page import create_cards_page
 
 from dash_application_vintage.data_page import create_standings_page
-from backend.game_data import get_vintage_players, get_decks_with_standings
+from backend.game_data import get_vintage_players, get_decks_with_standings, get_vintage_decks
 
 # Get player data
 vintage_players_df = get_vintage_players()
+vintage_decks_df = get_vintage_decks()
 
-# Generate color mapping
+# Generate Player color mapping
 unique_players = vintage_players_df['player_name'].unique()
 palette = sns.color_palette("hls", len(unique_players), desat = 0.85)
-color_list = [mcolors.to_hex(color) for color in palette]
+color_list_p = [mcolors.to_hex(color) for color in palette]
 
-player_color_map = dict(zip(unique_players, color_list))
+player_color_map = dict(zip(unique_players, color_list_p))
+
+# Generate Archetype color mapping
+unique_archetypes = vintage_decks_df['archetype'].unique()
+palette = sns.color_palette("hls", len(unique_archetypes), desat = 0.85)
+color_list_a = [mcolors.to_hex(color) for color in palette]
+
+archetype_color_map = dict(zip(unique_archetypes, color_list_a))
+
+# Generate Decktype color mapping
+unique_decktypes = vintage_decks_df['decktype'].unique()
+palette = sns.color_palette("hls", len(unique_decktypes), desat = 0.85)
+color_list_d = [mcolors.to_hex(color) for color in palette]
+
+decktype_color_map = dict(zip(unique_decktypes, color_list_d))
+
 
 # Dash APP
 def create_dash_application_vintage(flask_app):
@@ -65,7 +81,7 @@ def create_dash_application_vintage(flask_app):
         dcc.Location(id='url', refresh=False),
         dbc.NavbarSimple(
             children=[
-                dbc.NavLink("Vintage", href="/vintage/"),
+                dbc.NavLink("Vintage Cube", href="/vintage/"),
                 dbc.NavLink("Decks", href="/vintage/decks"),
                 dbc.NavLink("Player", href="/vintage/player"),
                 dbc.NavLink("Cards", href="/vintage/cards"),
@@ -116,6 +132,7 @@ def create_dash_application_vintage(flask_app):
             x='archetype',
             y='arche_types_count',
             color='archetype',
+            color_discrete_map=archetype_color_map,
             title='Archetypes',
             labels={'arche_types_count': 'Count', 'archetype': ''},
         )
@@ -133,9 +150,9 @@ def create_dash_application_vintage(flask_app):
     )
     def display_page(pathname):
         if pathname == '/vintage/player':
-            return create_player_page()
+            return create_player_page(player_color_map, archetype_color_map, decktype_color_map)
         elif pathname == '/vintage/decks':
-            return create_decks_page(player_color_map)
+            return create_decks_page(player_color_map, archetype_color_map, decktype_color_map)
         elif pathname == '/vintage/cards':
             return create_cards_page()
         elif pathname == '/vintage/standings':
@@ -143,6 +160,6 @@ def create_dash_application_vintage(flask_app):
         elif pathname == '/':
             return dcc.Location(pathname='/redirect_to_flask', id='redirect_to_flask')
         else:
-            return create_landing_page(player_color_map)
+            return create_landing_page(player_color_map, archetype_color_map)
 
     return dash_app

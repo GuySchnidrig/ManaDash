@@ -11,7 +11,6 @@ import seaborn as sns
 import matplotlib.colors as mcolors
 
 # Import local functions and pages
-from backend.game_data import get_games
 
 def create_game_data_page(game_data_df):
     sorted_game_data_df = game_data_df.sort_values(by='id', ascending=False)
@@ -31,6 +30,8 @@ def create_game_data_page(game_data_df):
             style_header={
                 'backgroundColor': 'rgb(230, 230, 230)',
                 'fontWeight': 'bold'
-            }
+            },
+            filter_action="native",  # Enable filtering
+            sort_action="native",    # Enable sorting
         )
     ])
