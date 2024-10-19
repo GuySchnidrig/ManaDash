@@ -9,32 +9,53 @@ from dash import dash_table
 import matplotlib.pyplot as plt
 import seaborn as sns
 import matplotlib.colors as mcolors
+import requests
+from dash.dependencies import Input, Output
 
-from backend.game_data import get_full_game_stats_table
+from backend.game_data import get_all_cards
 
 # Import local functions and pages
 
 def create_cards_page():
-    vintage_standings_df = get_full_game_stats_table()
-    # Sort the DataFrame by 'draft_id' in descending order
-    sorted_game_data_df = vintage_standings_df.sort_values(by='draft_id', ascending=False)
-
-    # Prepare the columns for the DataTable
+    cards_df = get_all_cards()
+    sorted_game_data_df = cards_df.sort_values(by='card_id', ascending=True)
     columns = [{'name': col, 'id': col} for col in sorted_game_data_df.columns]
 
-    return html.Div([
-        dash_table.DataTable(
-            id='table',
-            columns=columns,  # Set the columns here
-            data=sorted_game_data_df.to_dict('records'),
-            style_table={'overflowX': 'auto'},  
-            style_cell={
-                'textAlign': 'left',
-                'padding': '5px'
-            },
-            style_header={
-                'backgroundColor': 'rgb(230, 230, 230)',
-                'fontWeight': 'bold'
-            }
-        )
-    ])
+    return html.Div(
+        style={'display': 'flex', 'alignItems': 'flex-start'},  # Flexbox layout
+        children=[
+            dash_table.DataTable(
+                id='table',
+                columns=columns,
+                data=sorted_game_data_df.to_dict('records'),
+                style_table={'overflowX': 'auto', 'flex': '1'},  # Allow table to take available space
+                style_cell={
+                    'textAlign': 'left',
+                    'padding': '5px'
+                },
+                style_header={
+                    'backgroundColor': 'rgb(230, 230, 230)',
+                    'fontWeight': 'bold'
+                },
+                
+                # Enable row hover functionality
+                style_data_conditional=[
+                    {
+                        'if': {'state': 'hover'},  # When hovered over
+                        'backgroundColor': 'rgba(255, 255, 255)',
+                        'border': '1px solid black'
+                    }
+                ]
+            ),
+                    html.Div(
+                id='card-image-div',
+                style={
+                    'flex': '0 0 310px',  # Fixed width for the image div  Space for displaying the card image
+                    'padding': '10px',
+                    'overflow': 'hidden'  # Prevent overflow of content
+                }
+            ) 
+        ]
+    )
+    
+

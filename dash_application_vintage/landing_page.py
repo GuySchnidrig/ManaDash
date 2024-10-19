@@ -108,11 +108,22 @@ def create_landing_page(player_color_map, archetype_color_map):
         legend_title_text='Player Name'
     )
 
-    # Return the layout with graphs and multiple tables arranged in a grid
-    return html.Div([
-        dcc.Graph(figure=draftbar),  
-        dcc.Graph(figure=archetype_fig),  
-        dcc.Graph(figure=piewon),
+    return dcc.Loading(
+            id="loading-icon",  # Give an ID to the loading spinner
+            type="circle",  # You can use 'circle', 'dot', or other spinner types
+            children=html.Div([
+        dcc.Graph(figure=draftbar,
+                          config={
+                              'displayModeBar': False  # This hides the mode bar
+                              }),  
+        dcc.Graph(figure=archetype_fig,
+                          config={
+                              'displayModeBar': False  # This hides the mode bar
+                              }),  
+        dcc.Graph(figure=piewon,
+                          config={
+                              'displayModeBar': False  # This hides the mode bar
+                              }),
         html.Div(summary_table, style={'height': '400px', 'overflowY': 'auto'})
     ], className="responsive-grid", style={
         'display': 'grid',
@@ -124,4 +135,4 @@ def create_landing_page(player_color_map, archetype_color_map):
             'gridTemplateColumns': '1fr'  # On small screens, stack items vertically
         }
     })
-    
+    )

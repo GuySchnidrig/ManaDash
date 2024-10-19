@@ -119,3 +119,21 @@ def get_full_game_stats_table():
         df = pd.DataFrame()  # Return an empty DataFrame on error
 
     return df
+
+def get_all_cards():
+    try:
+        # Connect to the SQLite database
+        with sqlite3.connect(DB_PATH_vintage) as db:
+            # Use pandas to execute the SQL query and load data into a DataFrame
+            query = """
+                SELECT cards.card_id,
+                       cards.card_name,
+                       cards.cube_color_tag
+                FROM cards
+            """
+            df = pd.read_sql_query(query, db)
+    except sqlite3.Error as e:
+        print(f"An error occurred: {e}")
+        df = pd.DataFrame()  # Return an empty DataFrame on error
+
+    return df

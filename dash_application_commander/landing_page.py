@@ -128,26 +128,38 @@ def create_landing_page(game_data_df, player_color_map):
     )
 
     # Return the layout with graphs and multiple tables arranged in a grid
-    return html.Div([
-            dcc.Graph(figure=fig1),
-            html.Div([
-                html.Div(summary_table, style={'height': '100px', 'overflowY': 'auto'}),  # Adjust height as needed
-                html.Div(additional_table, style={'height': '300px', 'overflowY': 'auto'})  # Adjust height as needed
-            ], style={
+    return dcc.Loading(
+            id="loading-icon",  # Give an ID to the loading spinner
+            type="circle",  # You can use 'circle', 'dot', or other spinner types
+            children=html.Div([
+                dcc.Graph(figure=fig1,
+                          config={
+                              'displayModeBar': False  # This hides the mode bar
+                              }),
+                html.Div([
+                    html.Div(summary_table, style={'height': '100px', 'overflowY': 'auto'}),  # Adjust height as needed
+                    html.Div(additional_table, style={'height': '300px', 'overflowY': 'auto'})  # Adjust height as needed
+                ], style={
+                    'display': 'grid',
+                    'gridTemplateColumns': '1fr',  # Single column layout for tables
+                    'gap': '20px'
+                }),
+                dcc.Graph(figure=fig3,
+                          config={
+                              'displayModeBar': False  # This hides the mode bar
+                              }),
+                dcc.Graph(figure=fig4,
+                          config={
+                              'displayModeBar': False  # This hides the mode bar
+                              })
+            ], className="responsive-grid", style={
                 'display': 'grid',
-                'gridTemplateColumns': '1fr',  # Single column layout for tables
-                'gap': '20px'
-            }),
-            dcc.Graph(figure=fig3),
-            dcc.Graph(figure=fig4)
-    ], className="responsive-grid", style={
-        'display': 'grid',
-        'gridTemplateColumns': 'repeat(2, 1fr)',  # 2 columns by default
-        'gridTemplateRows': 'auto auto',          # Adjust rows to the content automatically
-        'gap': '20px',
-        # Add a media query to handle responsive design
-        '@media (max-width: 768px)': {
-            'gridTemplateColumns': '1fr'  # On small screens, stack items vertically
-        }
-    })
-    
+                'gridTemplateColumns': 'repeat(2, 1fr)',  # 2 columns by default
+                'gridTemplateRows': 'auto auto',          # Adjust rows to the content automatically
+                'gap': '20px',
+                # Add a media query to handle responsive design
+                '@media (max-width: 768px)': {
+                    'gridTemplateColumns': '1fr'  # On small screens, stack items vertically
+                }
+            })
+        )

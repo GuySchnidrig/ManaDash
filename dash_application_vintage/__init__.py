@@ -7,6 +7,7 @@ import seaborn as sns
 import matplotlib.colors as mcolors
 from dash import dcc, html, Input, Output
 import plotly.express as px
+import requests
 
 # Import local functions and pages
 from backend.game_data import get_vintage_players
@@ -144,6 +145,34 @@ def create_dash_application_vintage(flask_app):
 
         return archetype_fig
 
+    @dash_app.callback(
+        Output('card-image-div', 'children'),  # Update div with the image
+        Input('table', 'active_cell'),          # Detect the active cell (hovered row)
+        Input('table', 'data'),                  # Get the table data
+    )
+    def update_card_image(active_cell, rows):
+        if active_cell:
+            # Get the row index from the active cell
+            row_index = active_cell['row']  # Row index of the hovered cell
+            card_name = rows[row_index]['card_name'] 
+            
+            # Fetch card details from Scryfall API using the card name
+            url = f"https://api.scryfall.com/cards/named?fuzzy={card_name}"
+            response = requests.get(url)
+
+            if response.status_code == 200:
+                card_data = response.json()
+                card_image_url = card_data.get('image_uris', {}).get('normal', '')
+
+                if card_image_url:
+                    # Return the image in an <img> element
+                    return html.Img(src=card_image_url, style={'width': '300px', 'height': 'auto'})
+                else:
+                    return "Image not available"
+            else:
+                return "Card not found"
+        return "Hover over a card to view the image"
+    
     @dash_app.callback(
     dash.dependencies.Output('page-content', 'children'),
     [dash.dependencies.Input('url', 'pathname')],
