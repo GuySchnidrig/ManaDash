@@ -1,4 +1,4 @@
-from dash import dcc, html, Input, Output
+from dash import dcc, html, Input, Output, dash_table
 import plotly.express as px
 import dash_bootstrap_components as dbc
 from backend.game_data import get_vintage_players
@@ -30,7 +30,7 @@ def create_player_page(player_color_map, archetype_color_map, decktype_color_map
                 style={'margin-bottom': '20px'}
             ),
         ],
-        width=3,
+        width=1.5,
         style={'padding': '20px'}
     )
 
@@ -38,8 +38,23 @@ def create_player_page(player_color_map, archetype_color_map, decktype_color_map
     content = dbc.Col(
         [
             dcc.Graph(id='archetype-plot', figure=archetype_fig),
+            dash_table.DataTable(
+            id='filtered-decks-table',
+            columns=[
+                {'name': 'Date', 'id': 'date'},
+                {'name': 'Deck ID', 'id': 'deck_id'},
+                {'name': 'Player ID', 'id': 'player_id'},
+                {'name': 'Archetype', 'id': 'archetype'},
+                # Add more columns as needed based on your DataFrame
+            ],
+            data=[],  # Initial empty data, will be filled by callback
+            page_size=10,  # Adjust page size if needed
+        )
         ],
-        width=9
+        width=4
+        
+        
+        
     )
 
     # Combine sidebar and content into a single layout

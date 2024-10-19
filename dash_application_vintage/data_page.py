@@ -28,7 +28,10 @@ def create_standings_page():
             id='table',
             columns=columns,  # Set the columns here
             data=sorted_game_data_df.to_dict('records'),
-            style_table={'overflowX': 'auto'},  
+            style_table={'overflowX': 'auto'}, 
+            sort_action='native',
+            filter_action='native',
+            filter_options={'case':'insensitive'},
             style_cell={
                 'textAlign': 'left',
                 'padding': '5px'
@@ -37,7 +40,5 @@ def create_standings_page():
                 'backgroundColor': 'rgb(230, 230, 230)',
                 'fontWeight': 'bold'
             },
-            filter_action="native",  # Enable filtering
-            sort_action="native",    # Enable sorting
         )
     ])

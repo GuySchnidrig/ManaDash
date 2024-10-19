@@ -19,8 +19,10 @@ from backend.game_data import get_all_cards
 def create_cards_page():
     cards_df = get_all_cards()
     sorted_game_data_df = cards_df.sort_values(by='card_id', ascending=True)
+    
     columns = [{'name': col, 'id': col} for col in sorted_game_data_df.columns]
-
+    sorted_game_data_df['id'] = sorted_game_data_df['card_id'] 
+        
     return html.Div(
         style={'display': 'flex', 'alignItems': 'flex-start'},  # Flexbox layout
         children=[
@@ -28,6 +30,10 @@ def create_cards_page():
                 id='table',
                 columns=columns,
                 data=sorted_game_data_df.to_dict('records'),
+                page_size= 25,
+                sort_action='native',
+                filter_action='native',
+                filter_options={'case':'insensitive'},
                 style_table={'overflowX': 'auto', 'flex': '1'},  # Allow table to take available space
                 style_cell={
                     'textAlign': 'left',
@@ -57,5 +63,3 @@ def create_cards_page():
             ) 
         ]
     )
-    
-

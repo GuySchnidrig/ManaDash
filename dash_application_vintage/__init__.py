@@ -107,6 +107,7 @@ def create_dash_application_vintage(flask_app):
     # Callback to update the figure based on player selection
     @dash_app.callback(
         Output('archetype-plot', 'figure'),
+        Output('filtered-decks-table', 'data'),
         Input('player-dropdown', 'value')
     )
     def update_archetype_fig(selected_player):
@@ -142,8 +143,9 @@ def create_dash_application_vintage(flask_app):
             plot_bgcolor='white',
             showlegend=False
         )
-
-        return archetype_fig
+        # Prepare the data for the filtered decks table
+        filtered_decks_data = filtered_decks.to_dict('records')
+        return archetype_fig, filtered_decks_data
 
     @dash_app.callback(
         Output('card-image-div', 'children'),  # Update div with the image
@@ -153,7 +155,7 @@ def create_dash_application_vintage(flask_app):
     def update_card_image(active_cell, rows):
         if active_cell:
             # Get the row index from the active cell
-            row_index = active_cell['row']  # Row index of the hovered cell
+            row_index = active_cell['row_id'] - 1  
             card_name = rows[row_index]['card_name'] 
             
             # Fetch card details from Scryfall API using the card name
