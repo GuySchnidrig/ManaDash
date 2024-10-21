@@ -13,7 +13,10 @@ import requests
 from backend.game_data import get_vintage_players
 
 from dash_application_vintage.landing_page import create_landing_page
+
+
 from dash_application_vintage.decks_page import create_decks_page
+from dash_application_vintage.archetypes_page import create_archetypes_page
 from dash_application_vintage.player_page import create_player_page
 from dash_application_vintage.cards_page import create_cards_page
 
@@ -83,8 +86,9 @@ def create_dash_application_vintage(flask_app):
         dbc.NavbarSimple(
             children=[
                 dbc.NavLink("Vintage Cube", href="/vintage/"),
-                dbc.NavLink("Decks", href="/vintage/decks"),
+                dbc.NavLink("Archetypes", href="/vintage/archetypes"),
                 dbc.NavLink("Player", href="/vintage/player"),
+                dbc.NavLink("Decks", href="/vintage/decks"),
                 dbc.NavLink("Cards", href="/vintage/cards"),
                 dbc.NavLink("Standings", href="/vintage/standings")
             ],
@@ -155,24 +159,39 @@ def create_dash_application_vintage(flask_app):
     def update_card_image(active_cell, rows):
         if active_cell:
             # Get the row index from the active cell
-            row_index = active_cell['row_id'] - 1  
-            card_name = rows[row_index]['card_name'] 
+            row_index = active_cell['row_id'] - 1
+            card_name = rows[row_index]['card_name']
             
             # Fetch card details from Scryfall API using the card name
             url = f"https://api.scryfall.com/cards/named?fuzzy={card_name}"
             response = requests.get(url)
-
+            
             if response.status_code == 200:
                 card_data = response.json()
-                card_image_url = card_data.get('image_uris', {}).get('normal', '')
-
-                if card_image_url:
-                    # Return the image in an <img> element
-                    return html.Img(src=card_image_url, style={'width': '300px', 'height': 'auto'})
+                
+                # Check if the card has multiple faces (e.g., double-faced cards)
+                if 'image_uris' in card_data:
+                    # Single-faced card, get the 'normal' image from 'image_uris'
+                    first_image_url = card_data['image_uris'].get('normal', '')
+                    second_image_url = None  # No second image in this case
+                elif 'card_faces' in card_data:
+                    # Multi-faced card, get images from 'card_faces'
+                    faces = card_data['card_faces']
+                    first_image_url = faces[0]['image_uris'].get('normal', '') if len(faces) > 0 else ''
+                    second_image_url = faces[1]['image_uris'].get('normal', '') if len(faces) > 1 else ''
+                else:
+                    # Neither image_uris nor card_faces are found
+                    first_image_url = ''
+                    second_image_url = ''
+                
+                # Return the first image URL if available
+                if first_image_url:
+                    return html.Img(src=first_image_url, style={'width': '300px', 'height': 'auto'})
                 else:
                     return "Image not available"
             else:
                 return "Card not found"
+        
         return "Hover over a card to view the image"
     
     @dash_app.callback(
@@ -182,6 +201,8 @@ def create_dash_application_vintage(flask_app):
     def display_page(pathname):
         if pathname == '/vintage/player':
             return create_player_page(player_color_map, archetype_color_map, decktype_color_map)
+        elif pathname == '/vintage/archetypes':
+            return create_archetypes_page(player_color_map, archetype_color_map, decktype_color_map)
         elif pathname == '/vintage/decks':
             return create_decks_page(player_color_map, archetype_color_map, decktype_color_map)
         elif pathname == '/vintage/cards':

@@ -30,35 +30,42 @@ def create_player_page(player_color_map, archetype_color_map, decktype_color_map
                 style={'margin-bottom': '20px'}
             ),
         ],
-        width=1.5,
+        width=3,  # Set width to fit your design (25% of the container)
         style={'padding': '20px'}
     )
 
-    # Main content area for displaying the plot
+    # Main content area for displaying the plots and table
     content = dbc.Col(
-        [
-            dcc.Graph(id='archetype-plot', figure=archetype_fig),
+        html.Div([
+            dcc.Graph(id='archetype-plot', figure=archetype_fig,
+                      config={'displayModeBar': False}),  # This hides the mode bar
+            dcc.Graph(id='archetype-plot2', figure=archetype_fig,
+                      config={'displayModeBar': False}),
+            dcc.Graph(id='archetype-plot3', figure=archetype_fig,
+                      config={'displayModeBar': False}),
             dash_table.DataTable(
-            id='filtered-decks-table',
-            columns=[
-                {'name': 'Date', 'id': 'date'},
-                {'name': 'Deck ID', 'id': 'deck_id'},
-                {'name': 'Player ID', 'id': 'player_id'},
-                {'name': 'Archetype', 'id': 'archetype'},
-                # Add more columns as needed based on your DataFrame
-            ],
-            data=[],  # Initial empty data, will be filled by callback
-            page_size=10,  # Adjust page size if needed
-        )
-        ],
-        width=4
-        
-        
-        
+                id='filtered-decks-table',
+                columns=[
+                    {'name': 'Date', 'id': 'date'},
+                    {'name': 'Deck ID', 'id': 'deck_id'},
+                    {'name': 'Player ID', 'id': 'player_id'},
+                    {'name': 'Archetype', 'id': 'archetype'},
+                    # Add more columns as needed based on your DataFrame
+                ],
+                data=[],  # Initial empty data, will be filled by callback
+                page_size=10,  # Adjust page size if needed
+            ),
+        ]),
+        width=9,  # Set width to fit your design (75% of the container)
+        style={'padding': '20px'}
     )
 
     # Combine sidebar and content into a single layout
-    layout = dbc.Row([sidebar, content])
+    layout = dbc.Container(
+        [
+            dbc.Row([sidebar, content])  # Both sidebar and content in the same row
+        ],
+        fluid=True  # Use fluid layout for better responsiveness
+    )
 
     return layout
-
