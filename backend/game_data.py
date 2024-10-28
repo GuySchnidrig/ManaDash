@@ -80,12 +80,15 @@ def get_decks_with_standings():
         with sqlite3.connect(DB_PATH_vintage) as db:
             # Use pandas to execute the SQL query and load data into a DataFrame
             query = """
-                SELECT decks.deck_id, archetype, decktype, draft_standing.draft_standing_id, 
+                SELECT drafts.date,
+                       decks.deck_id, archetype, decktype, draft_standing.draft_standing_id, 
                        draft_standing.draft_id, draft_standing.player_id, 
                        draft_standing.standing, draft_standing.points, 
                        draft_standing.omp, draft_standing.gwp, draft_standing.ogp
                 FROM decks
                 JOIN draft_standing ON decks.deck_id = draft_standing.deck_id
+                JOIN drafts ON draft_standing.draft_id = drafts.draft_id
+
             """
             df = pd.read_sql_query(query, db)
     except sqlite3.Error as e:
@@ -103,6 +106,7 @@ def get_full_game_stats_table():
                 SELECT drafts.date,
                        drafts.season_id,
                        players.player_name,  
+                       players.player_id,
                        archetype, decktype, 
                        draft_standing.draft_id,draft_standing.standing, 
                        draft_standing.points, draft_standing.omp, 

@@ -98,6 +98,59 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
         showlegend=False
     )
     
+    # archtype win percentage plot
+    summary_archetype_with_standings_percentage = (
+    decks_with_standings
+    .assign(is_win=lambda df: df['standing'] == 1)  # Add a boolean column for wins
+    .groupby(['archetype'])
+    .agg(total_games=('deck_id', 'count'), total_wins=('is_win', 'sum'))
+    .reset_index())
+    
+    summary_archetype_with_standings_percentage['win_percentage'] = (summary_archetype_with_standings_percentage['total_wins'] / summary_archetype_with_standings_percentage['total_games']) * 100
+    
+    # Plot the win percentage for each and archetype
+    win_archetype_percentage_fig = px.bar(
+        summary_archetype_with_standings_percentage,
+        x='archetype',
+        y='win_percentage',
+        color='archetype',
+        color_discrete_map=archetype_color_map,
+        title='Win Percentage of Archetypes',
+        labels={'win_percentage': 'Win Percentage', 'archetype': ''}
+    )
+
+    win_archetype_percentage_fig.update_layout(
+        plot_bgcolor='white',
+        showlegend=False
+    )
+    
+    
+    # decktype win percentage plot
+    summary_decks_with_standings_percentage = (
+    decks_with_standings
+    .assign(is_win=lambda df: df['standing'] == 1)  # Add a boolean column for wins
+    .groupby(['decktype'])
+    .agg(total_games=('deck_id', 'count'), total_wins=('is_win', 'sum'))
+    .reset_index())
+    
+    summary_decks_with_standings_percentage['win_percentage'] = (summary_decks_with_standings_percentage['total_wins'] / summary_decks_with_standings_percentage['total_games']) * 100
+
+    
+        # Plot the win percentage for each decktype
+    win_decktype_percentage_fig = px.bar(
+        summary_decks_with_standings_percentage,
+        x='decktype',
+        y='win_percentage',
+        color='decktype',
+        color_discrete_map=decktype_color_map,
+        title='Win Percentage of Decktypes',
+        labels={'win_percentage': 'Win Percentage', 'decktype': ''}
+    )
+
+    win_decktype_percentage_fig.update_layout(
+        plot_bgcolor='white',
+        showlegend=False
+    )
 
   # Return the layout with graphs and multiple tables arranged in a grid
     return html.Div([
@@ -114,6 +167,14 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
                               'displayModeBar': False  # This hides the mode bar
                               }),
             dcc.Graph(figure=win_decktype_fig,
+                          config={
+                              'displayModeBar': False  # This hides the mode bar
+                              }),
+            dcc.Graph(figure=win_archetype_percentage_fig,
+                          config={
+                              'displayModeBar': False  # This hides the mode bar
+                              }),
+            dcc.Graph(figure=win_decktype_percentage_fig,
                           config={
                               'displayModeBar': False  # This hides the mode bar
                               })

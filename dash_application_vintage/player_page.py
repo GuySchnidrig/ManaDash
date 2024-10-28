@@ -17,6 +17,7 @@ def create_player_page(player_color_map, archetype_color_map, decktype_color_map
     
     # Initial empty figure
     archetype_fig = px.bar(title='Archetypes')
+    decktype_fig = px.bar(title='Decktypes')
 
     # Sidebar for player selection
     sidebar = dbc.Col(
@@ -30,40 +31,65 @@ def create_player_page(player_color_map, archetype_color_map, decktype_color_map
                 style={'margin-bottom': '20px'}
             ),
         ],
-        width=3,  # Set width to fit your design (25% of the container)
-        style={'padding': '20px'}
+        width=2,  
+        style={'padding': '20px', 'max-width': '200px'}  # Set max-width for sidebar
     )
 
     # Main content area for displaying the plots and table
     content = dbc.Col(
         html.Div([
+            html.H3("Player Statistics Overview", style={'textAlign': 'left'}),
+            
+            html.Div(
+                dash_table.DataTable(
+                    id='filtered-stats-table',
+                    columns=[
+                        {'name': 'Season', 'id': 'season_id'},
+                        {'name': 'Player', 'id': 'player_name'},
+                        {'name': 'Wins', 'id': 'total_wins', 'type': 'numeric'},
+                        {'name': 'Win Percentage', 'id': 'win_percentage', 'type': 'float'},
+                        {'name': 'Total Points', 'id': 'total_points', 'type': 'numeric'},
+                        {'name': 'Most Common Archetype', 'id': 'most_common_archetype'},
+                        {'name': 'Most Common Decktype', 'id': 'most_common_decktype'},
+                        {'name': 'Average OMP', 'id': 'average_omp', 'type': 'float'},
+                        {'name': 'Average GWP', 'id': 'average_gwp', 'type': 'float'},
+                        {'name': 'Average OGP', 'id': 'average_ogp', 'type': 'float'},
+                    ],
+                    data=[],  # Initial empty data, will be filled by callback
+                    page_size=10,  # Adjust page size if needed
+                    style_table={'overflowX': 'auto'},  # Allow horizontal scrolling
+                    style_cell={
+                        'whiteSpace': 'normal',
+                        'height': 'auto',
+                        'minWidth': '100px',  # Minimum width for cells
+                        'maxWidth': '300px',  # Maximum width for cells
+                    },
+                    style_header={
+                        'backgroundColor': 'lightgrey',
+                        'fontWeight': 'bold'
+                    },
+                    style_data={
+                        'whiteSpace': 'normal',
+                        'height': 'auto'
+                    }
+                ),
+                style={'overflowX': 'auto'}  # Allow overflow for the table
+            ),
+            
             dcc.Graph(id='archetype-plot', figure=archetype_fig,
                       config={'displayModeBar': False}),  # This hides the mode bar
-            dcc.Graph(id='archetype-plot2', figure=archetype_fig,
-                      config={'displayModeBar': False}),
-            dcc.Graph(id='archetype-plot3', figure=archetype_fig,
-                      config={'displayModeBar': False}),
-            dash_table.DataTable(
-                id='filtered-decks-table',
-                columns=[
-                    {'name': 'Date', 'id': 'date'},
-                    {'name': 'Deck ID', 'id': 'deck_id'},
-                    {'name': 'Player ID', 'id': 'player_id'},
-                    {'name': 'Archetype', 'id': 'archetype'},
-                    # Add more columns as needed based on your DataFrame
-                ],
-                data=[],  # Initial empty data, will be filled by callback
-                page_size=10,  # Adjust page size if needed
-            ),
+            
+            dcc.Graph(id='decktype-plot', figure=decktype_fig,
+                      config={'displayModeBar': False})
         ]),
-        width=9,  # Set width to fit your design (75% of the container)
+        width=9,  
         style={'padding': '20px'}
     )
 
     # Combine sidebar and content into a single layout
     layout = dbc.Container(
         [
-            dbc.Row([sidebar, content])  # Both sidebar and content in the same row
+            dbc.Row([sidebar, content], align='start')  # Align items at the start
         ],
         fluid=True  # Use fluid layout for better responsiveness
     )

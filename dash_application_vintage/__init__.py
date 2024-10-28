@@ -21,7 +21,7 @@ from dash_application_vintage.player_page import create_player_page
 from dash_application_vintage.cards_page import create_cards_page
 
 from dash_application_vintage.data_page import create_standings_page
-from backend.game_data import get_vintage_players, get_decks_with_standings, get_vintage_decks
+from backend.game_data import get_vintage_players, get_decks_with_standings, get_vintage_decks, get_full_game_stats_table
 
 # Get player data
 vintage_players_df = get_vintage_players()
@@ -111,30 +111,33 @@ def create_dash_application_vintage(flask_app):
     # Callback to update the figure based on player selection
     @dash_app.callback(
         Output('archetype-plot', 'figure'),
-        Output('filtered-decks-table', 'data'),
+        Output('decktype-plot', 'figure'),
+        Output('filtered-stats-table', 'data'),
         Input('player-dropdown', 'value')
     )
-    def update_archetype_fig(selected_player):
+    def update_player_data(selected_player):
         # Load data again if necessary, or filter based on selected player
         decks_with_standings = get_decks_with_standings()
-
+        game_stats = get_full_game_stats_table()
+        
         if selected_player:
             filtered_decks = decks_with_standings[decks_with_standings['player_id'] == selected_player]
+            filtered_stats = game_stats[game_stats['player_id'] == selected_player]
         else:
             filtered_decks = decks_with_standings
+            filtered_stats = game_stats
 
-        # Aggregate data for the selected player
-        summary_df_bar = (
+        # Archetype
+        summary_df_bar_archetype = (
             filtered_decks
             .groupby('archetype')
             .agg(arche_types_count=('deck_id', 'count'))
             .reset_index()
             .sort_values('arche_types_count', ascending=False)
         )
-
-        # Create the updated figure
+        
         archetype_fig = px.bar(
-            summary_df_bar,
+            summary_df_bar_archetype,
             x='archetype',
             y='arche_types_count',
             color='archetype',
@@ -147,9 +150,59 @@ def create_dash_application_vintage(flask_app):
             plot_bgcolor='white',
             showlegend=False
         )
-        # Prepare the data for the filtered decks table
-        filtered_decks_data = filtered_decks.to_dict('records')
-        return archetype_fig, filtered_decks_data
+        
+        # Decktype
+        summary_df_bar_decktype = (
+            filtered_decks
+            .groupby('decktype')
+            .agg(decktype_counts=('deck_id', 'count'))
+            .reset_index()
+            .sort_values('decktype_counts', ascending=False)
+        )
+
+        decktype_fig = px.bar(
+            summary_df_bar_decktype,
+            x='decktype',
+            y='decktype_counts',
+            color='decktype',
+            color_discrete_map=decktype_color_map,
+            title='Decktypes',
+            labels={'decktype_counts': 'Count', 'decktype': ''},
+        )
+
+        decktype_fig.update_layout(
+            plot_bgcolor='white',
+            showlegend=False
+        )
+        
+        
+        # Player Stats
+        filtered_stats_summary = (
+        filtered_stats
+        .assign(
+            is_win=lambda df: df['standing'] == 1  # Create a boolean column for wins
+        )
+        .groupby(['season_id' ,'player_id', 'player_name'], as_index=False)
+        .agg(
+            archetype_count=('archetype', 'size'),  # Count each archetype occurrence
+            total_wins=('is_win', 'sum'),  # Sum the wins for each archetype
+            total_points=('points', 'sum'),  # Sum the total points
+
+            most_common_archetype=('archetype', lambda x: x.value_counts().idxmax()),  # Most common archetype
+            most_common_decktype=('decktype', lambda x: x.value_counts().idxmax()),  # Most common archetype
+            average_omp=('omp', 'mean'),  # Average OMP
+            average_gwp=('gwp', 'mean'),  # Average GWP
+            average_ogp=('ogp', 'mean'),  # Average OGP
+        )
+        .assign(
+            win_percentage=lambda df: df['total_wins'] / df['archetype_count'] * 100  # Calculate win percentage
+        )
+        .sort_values(by='archetype_count', ascending=False)  # Sort by count of archetypes
+        )
+
+        filtered_stats_summary = filtered_stats_summary.to_dict('records')
+
+        return archetype_fig, decktype_fig, filtered_stats_summary
 
     @dash_app.callback(
         Output('card-image-div', 'children'),  # Update div with the image
