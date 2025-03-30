@@ -61,7 +61,9 @@ def login():
 def entry_screen():
     if 'logged_in' in session and session['logged_in']:
       session['username'] = session['username']
-    
+
+    print(f"Dash apps initialized for user: {session['username']}")
+
     print(session['username'])
     
     return render_template('entry_screen.html')
