@@ -32,15 +32,16 @@ with open('user_credentials.json', 'r') as file:
     data = json.load(file)
     USER_CREDENTIALS = data['USER_CREDENTIALS']
 
-
 # Routes
 @app.route('/')
-def index(): 
-    if 'logged_in' in session and session['logged_in']:
-        return(redirect(url_for('login')))
-    else:
-        return(redirect(url_for('login')))
+def index():
+    return redirect(url_for('entry_screen')) if session.get('logged_in') else redirect(url_for('login'))
 
+@app.before_request
+def require_login():
+    allowed_routes = ['login', 'static']
+    if not session.get('logged_in') and request.endpoint not in allowed_routes:
+        return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -56,16 +57,16 @@ def login():
             flash("Invalid username or password. Please try again.", "error")
     return render_template('login.html')
 
-
 @app.route('/entry_screen', methods=['GET', 'POST'])
 def entry_screen():
     if 'logged_in' in session and session['logged_in']:
       session['username'] = session['username']
-    
+
+    print(f"Dash apps initialized for user: {session['username']}")
+
     print(session['username'])
     
     return render_template('entry_screen.html')
-
 
 @app.route('/redirect_to_flask')
 def redirect_to_flask():
