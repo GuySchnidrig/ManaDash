@@ -14,6 +14,7 @@ import matplotlib.colors as mcolors
 from backend.game_data import get_vintage_standings
 from backend.game_data import get_vintage_decks
 from backend.game_data import get_decks_with_standings
+
 def create_decks_page(player_color_map, archetype_color_map, decktype_color_map):
     
     vintage_decks_df = get_vintage_decks()
