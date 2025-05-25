@@ -40,7 +40,8 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
     
     # Decktypes plot
     summary_df_bar = vintage_decks_df.groupby(['decktype']).agg(deck_types_count=('deck_id', 'count')).reset_index()
-    summary_df_bar = summary_df_bar.sort_values('deck_types_count', ascending=False)
+    summary_df_bar = summary_df_bar.sort_values('deck_types_count', ascending=False).head(10)
+
 
     decktype_fig = px.bar(
     summary_df_bar,
@@ -128,11 +129,13 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
     # decktype win percentage plot
     summary_decks_with_standings_percentage = (
     decks_with_standings
-    .assign(is_win=lambda df: df['standing'] == 1)  # Add a boolean column for wins
+    .assign(is_win=lambda df: df['standing'] == 1)
     .groupby(['decktype'])
     .agg(total_games=('deck_id', 'count'), total_wins=('is_win', 'sum'))
-    .reset_index())
-    
+    .reset_index()
+    )
+    summary_decks_with_standings_percentage = summary_decks_with_standings_percentage.sort_values('total_games', ascending=False).head(10)
+
     summary_decks_with_standings_percentage['win_percentage'] = (summary_decks_with_standings_percentage['total_wins'] / summary_decks_with_standings_percentage['total_games']) * 100
 
     

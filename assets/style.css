@@ -1,0 +1,12 @@
+img {
+    position: relative;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    z-index: auto;
+}
+
+img:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+    z-index: 1000 !important;
+    cursor: pointer;
+}
