@@ -63,30 +63,6 @@ def create_landing_page(player_color_map, archetype_color_map):
         showlegend=False
     )
     
-    # Create summary DataFrame for the main summary table
-    summary_table = {
-        'Total Drafts': len(vintage_standings_df['draft_id'].unique()),
-        'Unique Players': len(vintage_players_df['player_name'].unique()),
-        'Unique Archetypes': len(vintage_decks_df['archetype'].unique()),
-        'Unique Decktypes': len(vintage_decks_df['decktype'].unique())
-    }
-    summary_table = pd.DataFrame([summary_table])
-
-    summary_table = dash_table.DataTable(
-        id='summary-table',
-        columns=[{'name': col, 'id': col} for col in summary_table.columns],
-        data=summary_table.to_dict('records'),
-        style_table={'overflowX': 'auto'},
-        style_cell={'textAlign': 'left'},
-        style_header={
-            'backgroundColor': 'white',
-            'fontWeight': 'bold'
-        },
-        style_data={
-            'backgroundColor': 'white',
-            'color': 'black'
-        },
-    )
 
 
     # Pie chart for games won
@@ -107,24 +83,52 @@ def create_landing_page(player_color_map, archetype_color_map):
         showlegend=True, 
         legend_title_text='Player Name'
     )
+    
+    # Points plot
+    # Create summary DataFrame for Drafts plot
+    summary_df_avg_points = combined_df.groupby('player_name').agg(
+    avg_gamewins_per_draft=('game_wins', 'mean'),   # average game wins per draft
+    Played_Games=('draft_id', 'count')         # total drafts played
+    ).reset_index()
+    # Optional: sort by average points descending
+    summary_df_avg_points = summary_df_avg_points.sort_values('avg_gamewins_per_draft', ascending=False)
+
+    avg_points_fig = px.bar(
+        summary_df_avg_points,
+        x='player_name',
+        y='avg_gamewins_per_draft',
+        color='player_name',
+        color_discrete_map=player_color_map,
+        title='Game Wins per Draft',
+        labels={'avg_gamewins_per_draft': 'Average Points', 'player_name': ''}
+    )
+
+    avg_points_fig.update_layout(
+        plot_bgcolor='white',
+        showlegend=False,
+        yaxis=dict(title='Average Game Wins')
+    )
 
     return dcc.Loading(
-            id="loading-icon",  # Give an ID to the loading spinner
-            type="circle",  # You can use 'circle', 'dot', or other spinner types
+            id="loading-icon",
+            type="circle",
             children=html.Div([
         dcc.Graph(figure=draftbar,
                           config={
-                              'displayModeBar': False  # This hides the mode bar
+                              'displayModeBar': False
                               }),  
         dcc.Graph(figure=archetype_fig,
                           config={
-                              'displayModeBar': False  # This hides the mode bar
+                              'displayModeBar': False
                               }),  
         dcc.Graph(figure=piewon,
                           config={
-                              'displayModeBar': False  # This hides the mode bar
+                              'displayModeBar': False
                               }),
-        html.Div(summary_table, style={'height': '400px', 'overflowY': 'auto'})
+        dcc.Graph(figure=avg_points_fig,
+                          config={
+                              'displayModeBar': False
+                              }),
     ], className="responsive-grid", style={
         'display': 'grid',
         'gridTemplateColumns': 'repeat(2, 1fr)',  # 2 columns by default
