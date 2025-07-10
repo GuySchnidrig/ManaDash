@@ -105,6 +105,25 @@ def get_decks_with_standings():
 
     return df
 
+def get_player_elo():
+    try:
+        with sqlite3.connect(DB_PATH_vintage) as db:
+            query = """
+                SELECT pe.id,
+                       pe.player_id,
+                       p.player_name,
+                       pe.draft_id,
+                       pe.elo
+                FROM player_elo pe
+                LEFT JOIN Players p ON pe.player_id = p.player_id
+            """
+            df = pd.read_sql_query(query, db)
+    except sqlite3.Error as e:
+        print(f"An error occurred: {e}")
+        df = pd.DataFrame()
+
+    return df
+
 def get_full_game_stats_table():
     try:
         # Connect to the SQLite database

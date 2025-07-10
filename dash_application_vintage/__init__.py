@@ -20,7 +20,7 @@ from dash_application_vintage.landing_page import create_landing_page
 from dash_application_vintage.decks_page import create_decks_page
 from dash_application_vintage.archetypes_page import create_archetypes_page
 from dash_application_vintage.player_page import create_player_page
-
+from dash_application_vintage.player_elo_page import create_player_elo_page 
 from dash_application_vintage.data_page import create_standings_page
 from backend.game_data import get_vintage_players, get_decks_with_standings, get_vintage_decks, get_full_game_stats_table, get_deck_card_names, fetch_card_data, group_by_cmc, render_row, calculate_stats, render_stats_panel
 
@@ -103,6 +103,7 @@ def create_dash_application_vintage(flask_app):
                                 dbc.NavLink("Vintage Cube", href="/vintage/", active="exact"),
                                 dbc.NavLink("Archetypes", href="/vintage/archetypes", active="exact"),
                                 dbc.NavLink("Player", href="/vintage/player", active="exact"),
+                                dbc.NavLink("Player-Elo", href="/vintage/player-elo", active="exact"),
                                 dbc.NavLink("Decks", href="/vintage/decks", active="exact"),
                                 dbc.NavLink("Standings", href="/vintage/standings", active="exact"),
                             ],
@@ -346,6 +347,9 @@ def create_dash_application_vintage(flask_app):
             return create_archetypes_page(player_color_map, archetype_color_map, decktype_color_map)
         elif pathname == '/vintage/decks':
             return create_decks_page(player_color_map, archetype_color_map, decktype_color_map)
+        
+        elif pathname == '/vintage/player-elo':
+            return create_player_elo_page(player_color_map, archetype_color_map, decktype_color_map)
 
         elif pathname == '/vintage/standings':
             return create_standings_page()
