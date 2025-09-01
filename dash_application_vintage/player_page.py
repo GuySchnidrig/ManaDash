@@ -7,9 +7,10 @@ def create_player_page(player_color_map, archetype_color_map, decktype_color_map
     # Load data
     players_df = get_vintage_players()
     
+
     # Generate dropdown options from the DataFrame
     player_options = [
-        {'label': row['player_name'], 'value': row['player_id']} 
+        {'label': row['player'], 'value': row['player_id']}
         for _, row in players_df.iterrows()
     ]
     # Set default value to the first player's ID if available
@@ -45,7 +46,7 @@ def create_player_page(player_color_map, archetype_color_map, decktype_color_map
                     id='filtered-stats-table',
                     columns=[
                         {'name': 'Season', 'id': 'season_id'},
-                        {'name': 'Player', 'id': 'player_name'},
+                        {'name': 'Player', 'id': 'player'},
                         {'name': 'Wins', 'id': 'total_wins', 'type': 'numeric'},
                         {'name': 'Win Percentage', 'id': 'win_percentage', 'type': 'float'},
                         {'name': 'Total Points', 'id': 'total_points', 'type': 'numeric'},

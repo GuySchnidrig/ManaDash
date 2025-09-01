@@ -10,33 +10,28 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import matplotlib.colors as mcolors
 
-from backend.game_data import get_vintage_drafts
-from backend.game_data import get_vintage_standings
-from backend.game_data import get_vintage_decks
-from backend.game_data import get_vintage_players
+from backend.game_data import *
+
 
 def create_landing_page(player_color_map, archetype_color_map):
-    vintage_drafts_df = get_vintage_drafts()
     vintage_standings_df = get_vintage_standings()
-    vintage_decks_df = get_vintage_decks()
-    vintage_players_df = get_vintage_players()
-
-    combined_df = pd.merge(vintage_standings_df, vintage_players_df, on='player_id', how='left')
+    archetype_match_winrate = get_data('archetype_match_winrate')
+    player_game_and_match_winrate = get_data('player_game_and_match_winrate')
     
     # Drafts plot
     # Create summary DataFrame for Drafts plot
-    summary_df_bar = combined_df.groupby(['player_name']).agg(Played_Games=('draft_id', 'count')).reset_index()
+    summary_df_bar = vintage_standings_df.groupby(['player']).agg(Played_Games=('draft_id', 'count')).reset_index()
     summary_df_bar = summary_df_bar.sort_values('Played_Games', ascending=False)
     
  
     draftbar = px.bar(
         summary_df_bar,
-        x='player_name',
+        x='player',
         y='Played_Games',
-        color='player_name',
+        color='player',
         color_discrete_map=player_color_map,
         title='Drafts',
-        labels={'Played_Games': 'Count', 'player_name': ''},
+        labels={'Played_Games': 'Count', 'player': ''},
     )
     draftbar.update_layout(
         plot_bgcolor='white',
@@ -45,17 +40,17 @@ def create_landing_page(player_color_map, archetype_color_map):
 
     # Archtypes plot
     # Create summary DataFrame for Drafts plot
-    summary_df_bar = vintage_decks_df.groupby(['archetype']).agg(arche_types_count=('deck_id', 'count')).reset_index()
-    summary_df_bar = summary_df_bar.sort_values('arche_types_count', ascending=False)
+    summary_df_bar = archetype_match_winrate
+    summary_df_bar = summary_df_bar.sort_values('match_win_rate', ascending=False)
 
     archetype_fig = px.bar(
     summary_df_bar,
     x='archetype',
-    y='arche_types_count',
+    y='match_win_rate',
     color='archetype',
     color_discrete_map=archetype_color_map,
-    title='Archetypes',
-    labels={'arche_types_count': 'Count', 'archetype': ''},
+    title='Archetype Match Win Rate',
+    labels={'match_win_rate': 'Match Win Rate', 'archetype': ''},
     )
     
     archetype_fig.update_layout(
@@ -63,17 +58,15 @@ def create_landing_page(player_color_map, archetype_color_map):
         showlegend=False
     )
     
-
-
     # Pie chart for games won
-    game_data_df_pie = combined_df[combined_df['standing'] == 1]  # Filter for wins
-    summary_df_pie = game_data_df_pie.groupby(['player_name']).agg(Games_won=('draft_id', 'count')).reset_index()
-    
+    game_data_df_pie = vintage_standings_df[vintage_standings_df['standing'] == 1]  # Filter for wins
+    summary_df_pie = game_data_df_pie.groupby(['player']).agg(games_won=('draft_id', 'count')).reset_index()
+
     piewon = px.pie(
         summary_df_pie,
-        names='player_name',
-        values='Games_won',
-        color='player_name',
+        names='player',
+        values='games_won',
+        color='player',
         color_discrete_map=player_color_map,
         title='Drafts Won',
     )
@@ -84,29 +77,25 @@ def create_landing_page(player_color_map, archetype_color_map):
         legend_title_text='Player Name'
     )
     
-    # Points plot
-    # Create summary DataFrame for Drafts plot
-    summary_df_avg_points = combined_df.groupby('player_name').agg(
-    avg_gamewins_per_draft=('game_wins', 'mean'),   # average game wins per draft
-    Played_Games=('draft_id', 'count')         # total drafts played
-    ).reset_index()
-    # Optional: sort by average points descending
-    summary_df_avg_points = summary_df_avg_points.sort_values('avg_gamewins_per_draft', ascending=False)
+    # Gamewinrate 
+    summary_df_avg_points = player_game_and_match_winrate
+    # Sort 
+    summary_df_avg_points = summary_df_avg_points.sort_values('game_win_rate', ascending=False)
 
     avg_points_fig = px.bar(
         summary_df_avg_points,
-        x='player_name',
-        y='avg_gamewins_per_draft',
-        color='player_name',
+        x='player',
+        y='game_win_rate',
+        color='player',
         color_discrete_map=player_color_map,
-        title='Game Wins per Draft',
-        labels={'avg_gamewins_per_draft': 'Average Points', 'player_name': ''}
+        title='Game Win Rate',
+        labels={'game_win_rate': 'Game Win Rate', 'player': ''}
     )
 
     avg_points_fig.update_layout(
         plot_bgcolor='white',
         showlegend=False,
-        yaxis=dict(title='Average Game Wins')
+        yaxis=dict(title='Game Win Rate')
     )
 
     return dcc.Loading(

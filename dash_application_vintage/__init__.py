@@ -16,20 +16,24 @@ from backend.game_data import get_vintage_players
 
 from dash_application_vintage.landing_page import create_landing_page
 
-
 from dash_application_vintage.decks_page import create_decks_page
 from dash_application_vintage.archetypes_page import create_archetypes_page
 from dash_application_vintage.player_page import create_player_page
 from dash_application_vintage.player_elo_page import create_player_elo_page 
 from dash_application_vintage.data_page import create_standings_page
-from backend.game_data import get_vintage_players, get_decks_with_standings, get_vintage_decks, get_full_game_stats_table, get_deck_card_names, fetch_card_data, group_by_cmc, render_row, calculate_stats, render_stats_panel
+
+from backend.game_data import *
+
+
+# Get data
+initialize_data()
 
 # Get player data
 vintage_players_df = get_vintage_players()
 vintage_decks_df = get_vintage_decks()
 
 # Generate Player color mapping
-unique_players = vintage_players_df['player_name'].unique()
+unique_players = vintage_players_df['player'].unique()
 palette = sns.color_palette("hls", len(unique_players), desat = 0.85)
 color_list_p = [mcolors.to_hex(color) for color in palette]
 
@@ -134,18 +138,22 @@ def create_dash_application_vintage(flask_app):
         Output('filtered-stats-table', 'data'),
         Input('player-dropdown', 'value')
     )
-    def update_player_data(selected_player):
-        # Load data again if necessary, or filter based on selected player
+    def update_player_data(selected_player_id):
         decks_with_standings = get_decks_with_standings()
+        players_df = get_vintage_players()  # has player_id + player (name)
+        decks_with_standings = decks_with_standings.merge(
+        players_df[['player_id', 'player']], 
+        on='player', 
+        how='left'
+        )
         game_stats = get_full_game_stats_table()
         
-        if selected_player:
-            filtered_decks = decks_with_standings[decks_with_standings['player_id'] == selected_player]
-            filtered_stats = game_stats[game_stats['player_id'] == selected_player]
+        if selected_player_id:
+            filtered_decks = decks_with_standings[decks_with_standings['player_id'] == selected_player_id]
+            filtered_stats = game_stats[game_stats['player_id'] == selected_player_id]
         else:
             filtered_decks = decks_with_standings
             filtered_stats = game_stats
-
         # Archetype
         summary_df_bar_archetype = (
             filtered_decks
@@ -197,27 +205,25 @@ def create_dash_application_vintage(flask_app):
         
         # Player Stats
         filtered_stats_summary = (
-        filtered_stats
-        .assign(
-            is_win=lambda df: df['standing'] == 1  # Create a boolean column for wins
+            filtered_stats
+            .assign(is_win=lambda df: df['standing'] == 1)
+            .groupby(['season_id', 'player_name'], as_index=False)
+            .agg(
+                archetype_count=('archetype', 'size'),
+                total_wins=('is_win', 'sum'),
+                total_points=('game_points', 'sum'),
+                most_common_archetype=('archetype', lambda x: x.value_counts().idxmax()),
+                most_common_decktype=('decktype', lambda x: x.value_counts().idxmax()),
+                average_omp=('OMP', 'mean'),
+                average_gwp=('GWP', 'mean'),
+                average_ogp=('OGP', 'mean'),
+            )
+            .assign(
+                win_percentage=lambda df: df['total_wins'] / df['archetype_count'] * 100
+            )
+            .sort_values(by='archetype_count', ascending=False)
         )
-        .groupby(['season_id' ,'player_id', 'player_name'], as_index=False)
-        .agg(
-            archetype_count=('archetype', 'size'),  # Count each archetype occurrence
-            total_wins=('is_win', 'sum'),  # Sum the wins for each archetype
-            total_points=('points', 'sum'),  # Sum the total points
 
-            most_common_archetype=('archetype', lambda x: x.value_counts().idxmax()),  # Most common archetype
-            most_common_decktype=('decktype', lambda x: x.value_counts().idxmax()),  # Most common archetype
-            average_omp=('omp', 'mean'),  # Average OMP
-            average_gwp=('gwp', 'mean'),  # Average GWP
-            average_ogp=('ogp', 'mean'),  # Average OGP
-        )
-        .assign(
-            win_percentage=lambda df: df['total_wins'] / df['archetype_count'] * 100  # Calculate win percentage
-        )
-        .sort_values(by='archetype_count', ascending=False)  # Sort by count of archetypes
-        )
 
         filtered_stats_summary = filtered_stats_summary.to_dict('records')
 
@@ -275,7 +281,7 @@ def create_dash_application_vintage(flask_app):
     def update_deck_dropdown(selected_player_id):
         if not selected_player_id:
             return [], None
-        filtered_decks = vintage_decks_df[vintage_decks_df['player_id'] == selected_player_id]
+        filtered_decks = vintage_decks_df[vintage_decks_df['player'] == selected_player_id]
         filtered_decks = filtered_decks.sort_values('deck_id', ascending=False)
         deck_options = [{'label': str(row['deck_id']), 'value': row['deck_id']} for _, row in filtered_decks.iterrows()]
         default_value = deck_options[0]['value'] if deck_options else None
@@ -289,10 +295,10 @@ def create_dash_application_vintage(flask_app):
         Input("player-dropdown", "value"),
         Input("deck-dropdown", "value")
     )
-    def update_card_rows(player_id, deck_id):
-        if not player_id or not deck_id:
+    def update_card_rows(player, deck_id):
+        if not player or not deck_id:
             return "", "", ""
-        card_names = get_deck_card_names(player_id, deck_id)
+        card_names = get_deck_card_names(player, deck_id)
         cards = [fetch_card_data(name) for name in card_names]
         cards = [c for c in cards if c]
 

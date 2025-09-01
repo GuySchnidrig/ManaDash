@@ -28,17 +28,17 @@ def create_player_elo_page(player_color_map, archetype_color_map, decktype_color
         player_elo_df,
         x='draft_id',
         y='elo',
-        color='player_name',
+        color='player',
         color_discrete_map=player_color_map,
         title='Player ELO Over Time',
-        labels={'elo': 'ELO Rating', 'draft_id': 'Draft', 'player_name': 'Player'},
+        labels={'elo': 'ELO Rating', 'draft_id': 'Draft', 'player': 'Player'},
         line_shape='spline'
     )
     
     # Set trace visibility based on initial_players
     if initial_players is not None:
         for trace in fig.data:
-            # trace.name holds the player_name here
+            # trace.name holds the player here
             if trace.name in initial_players:
                 trace.visible = True
             else:

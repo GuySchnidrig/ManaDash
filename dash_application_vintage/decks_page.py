@@ -28,7 +28,7 @@ def create_decks_page(player_color_map, archetype_color_map, decktype_color_map)
     
     # Generate dropdown options from the DataFrame
     player_options = [
-        {'label': row['player_name'], 'value': row['player_id']} 
+        {'label': row['player'], 'value': row['player_id']} 
         for _, row in players_df.iterrows()
     ]
     # Set default value to the first player's ID if available
