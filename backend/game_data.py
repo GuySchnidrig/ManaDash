@@ -72,15 +72,11 @@ def get_vintage_standings():
 def get_vintage_decks():
     """Get decks with player info merged"""
     decks_df = get_data('drafted_decks')
-    standings_df = get_data('standings')
-    
-    if decks_df.empty or standings_df.empty:
-        return pd.DataFrame()
-    
+
     # Merge decks with standings to get player info
     merged = decks_df.merge(
-        standings_df[['draft_id', 'player', 'season_id']],
-        on=['draft_id', 'player'],
+        decks_df[['draft_id', 'player', 'season_id']],
+        on=['draft_id', 'player', 'season_id'],
         how='left'
     )
     return merged
@@ -92,9 +88,8 @@ def get_vintage_players():
         return pd.DataFrame()
     
     # Extract unique players
-    players = decks_df[['player']].drop_duplicates().reset_index(drop=True)
-    players['player_id'] = players.index + 1  # Create sequential player IDs
-    players = players.rename(columns={'player': 'player'})
+    players = decks_df[['player', 'player_id']].drop_duplicates().reset_index(drop=True)
+
     return players
 
 def get_decks_with_standings():
@@ -109,10 +104,10 @@ def get_decks_with_standings():
     # Merge all three tables
     merged = decks_df.merge(
         standings_df,
-        on=['draft_id', 'player', 'season_id'],
+        on=['draft_id', 'player', 'player_id', 'season_id'],
         how='inner'
     ).merge(
-        drafts_df[['draft_id', 'timestamp']],
+        drafts_df[['draft_id','season_id', 'timestamp']],
         on='draft_id',
         how='left'
     )
@@ -141,24 +136,13 @@ def get_full_game_stats_table():
     # Merge all tables
     merged = decks_df.merge(
         standings_df,
-        on=['draft_id', 'player', 'season_id'],
+        on=['draft_id', 'player','player_id', 'season_id'],
         how='inner'
     ).merge(
         drafts_df[['draft_id', 'timestamp']],
         on='draft_id',
         how='left'
     )
-    
-    # Add player_id (sequential)
-    unique_players = merged['player'].unique()
-    player_id_map = {player: idx + 1 for idx, player in enumerate(unique_players)}
-    merged['player_id'] = merged['player'].map(player_id_map)
-    
-    # Rename columns for consistency
-    merged = merged.rename(columns={
-        'timestamp': 'date',
-        'player': 'player_name'
-    })
     
     return merged
 
@@ -196,46 +180,21 @@ def fetch_card_data(name):
     return None
 
 def get_deck_card_names(player_id, deck_id):
-    """Get card names for a specific deck"""
-    # This would need to be implemented based on your deck storage format
-    # For now, return the same placeholder as before
-    return [    
-        "Gilded Goose",
-        "Psychic Frog",
-        "Sylvan Caryatid",
-        "The Goose Mother",
-        "Scavenging Ooze",
-        "Springheart Nantuko",
-        "Nadu, Winged Wisdom",
-        "Spitting Dilophosaurus",
-        "Unruly Krasis",
-        "Tireless Tracker",
-        "Leovold, Emissary of Trest",
-        "Manglehorn",
-        "Fallen Shinobi",
-        "Mox Sapphire",
-        "Tropical Island",
-        "Misty Rainforest",
-        "Bountiful Landscape",
-        "Zuran Orb",
-        "Mana Crypt",
-        "Zagoth Triome",
-        "Verdant Catacombs",
-        "Dismember",
-        "Inquisition of Kozilek",
-        "Duress",
-        "Skullclamp",
-        "Brainstorm",
-        "Mana Drain",
-        "Daze",
-        "Lightning Greaves",
-        "Witherbloom Command",
-        "Bitter Triumph",
-        "Force of Negation",
-        "Timetwister",
-        "Narset, Parter of Veils",
-        "Virtue of Persistence"
+    """
+    Get all card names for a specific deck (by player + deck_id)
+    from drafted_decks table.
+    """
+    decks_df = get_data('drafted_decks')
+
+    # Filter by deck_id and player_id (if both exist in schema)
+    filtered = decks_df[
+        (decks_df['deck_id'] == deck_id) & 
+        (decks_df['player_id'] == player_id)
     ]
+
+    # Assuming each row has a "cardName" column
+    return filtered['card_name'].dropna().tolist()
+
 
 def group_by_cmc(card_list):
     """Group cards by CMC"""

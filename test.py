@@ -17,30 +17,34 @@ from backend.game_data import *
 # Get data
 initialize_data()
 
-# Get player data
-vintage_players_df = get_vintage_players()
-vintage_drafts_df = get_vintage_drafts()
-vintage_standings_df = get_vintage_standings()
-vintage_decks_df = get_vintage_decks()
-vintage_players_df = get_vintage_players()
-
-
 # Generate Player color mapping
 players_df = get_vintage_players()
-print(players_df)
+
 
 player_options = [
-    {'label': row['player'], 'value': row['player_id']} 
+    {'label': row['player'], 'value': row['player_id']}
     for _, row in players_df.iterrows()
 ]
 
-print(player_options)
+
+# Set default value to the first player's ID if available
+default_player_id = player_options[0]['value'] if player_options else None
+
 
 decks_with_standings = get_decks_with_standings()
-game_stats = get_full_game_stats_table()
-
-print(decks_with_standings)
-print(game_stats)
 
 selected_player_id = 1
+filtered_decks = decks_with_standings[decks_with_standings['player_id'] == selected_player_id]
+
+
+game_stats = get_full_game_stats_table()
 filtered_stats = game_stats[game_stats['player_id'] == selected_player_id]
+
+sample_player_id = 10      # 👈 replace with a real player_id from your data
+sample_deck_id = 3    # 👈 replace with a real draft_id/deck_id from your data
+
+
+
+
+names = get_deck_card_names(sample_player_id, sample_deck_id)
+print(names)

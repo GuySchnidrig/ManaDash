@@ -33,7 +33,7 @@ vintage_players_df = get_vintage_players()
 vintage_decks_df = get_vintage_decks()
 
 # Generate Player color mapping
-unique_players = vintage_players_df['player'].unique()
+unique_players = vintage_players_df['player_id'].unique()
 palette = sns.color_palette("hls", len(unique_players), desat = 0.85)
 color_list_p = [mcolors.to_hex(color) for color in palette]
 
@@ -140,12 +140,6 @@ def create_dash_application_vintage(flask_app):
     )
     def update_player_data(selected_player_id):
         decks_with_standings = get_decks_with_standings()
-        players_df = get_vintage_players()  # has player_id + player (name)
-        decks_with_standings = decks_with_standings.merge(
-        players_df[['player_id', 'player']], 
-        on='player', 
-        how='left'
-        )
         game_stats = get_full_game_stats_table()
         
         if selected_player_id:
@@ -154,15 +148,16 @@ def create_dash_application_vintage(flask_app):
         else:
             filtered_decks = decks_with_standings
             filtered_stats = game_stats
+            
         # Archetype
         summary_df_bar_archetype = (
             filtered_decks
             .groupby('archetype')
-            .agg(arche_types_count=('deck_id', 'count'))
+            .agg(arche_types_count=('deck_id', 'nunique')) 
             .reset_index()
             .sort_values('arche_types_count', ascending=False)
         )
-        
+
         archetype_fig = px.bar(
             summary_df_bar_archetype,
             x='archetype',
@@ -170,19 +165,19 @@ def create_dash_application_vintage(flask_app):
             color='archetype',
             color_discrete_map=archetype_color_map,
             title='Archetypes',
-            labels={'arche_types_count': 'Count', 'archetype': ''},
+            labels={'arche_types_count': 'Unique Decks', 'archetype': ''},
         )
 
         archetype_fig.update_layout(
             plot_bgcolor='white',
             showlegend=False
         )
-        
+
         # Decktype
         summary_df_bar_decktype = (
             filtered_decks
             .groupby('decktype')
-            .agg(decktype_counts=('deck_id', 'count'))
+            .agg(decktype_counts=('deck_id', 'nunique')) 
             .reset_index()
             .sort_values('decktype_counts', ascending=False)
         )
@@ -194,20 +189,20 @@ def create_dash_application_vintage(flask_app):
             color='decktype',
             color_discrete_map=decktype_color_map,
             title='Decktypes',
-            labels={'decktype_counts': 'Count', 'decktype': ''},
+            labels={'decktype_counts': 'Unique Decks', 'decktype': ''},
         )
 
         decktype_fig.update_layout(
             plot_bgcolor='white',
             showlegend=False
         )
-        
+                
         
         # Player Stats
         filtered_stats_summary = (
             filtered_stats
             .assign(is_win=lambda df: df['standing'] == 1)
-            .groupby(['season_id', 'player_name'], as_index=False)
+            .groupby(['season_id', 'player_id'], as_index=False)
             .agg(
                 archetype_count=('archetype', 'size'),
                 total_wins=('is_win', 'sum'),
@@ -281,7 +276,7 @@ def create_dash_application_vintage(flask_app):
     def update_deck_dropdown(selected_player_id):
         if not selected_player_id:
             return [], None
-        filtered_decks = vintage_decks_df[vintage_decks_df['player'] == selected_player_id]
+        filtered_decks = vintage_decks_df[vintage_decks_df['player_id'] == selected_player_id]
         filtered_decks = filtered_decks.sort_values('deck_id', ascending=False)
         deck_options = [{'label': str(row['deck_id']), 'value': row['deck_id']} for _, row in filtered_decks.iterrows()]
         default_value = deck_options[0]['value'] if deck_options else None
@@ -295,10 +290,10 @@ def create_dash_application_vintage(flask_app):
         Input("player-dropdown", "value"),
         Input("deck-dropdown", "value")
     )
-    def update_card_rows(player, deck_id):
-        if not player or not deck_id:
+    def update_card_rows(player_id, deck_id):
+        if not player_id or not deck_id:
             return "", "", ""
-        card_names = get_deck_card_names(player, deck_id)
+        card_names = get_deck_card_names(player_id, deck_id)
         cards = [fetch_card_data(name) for name in card_names]
         cards = [c for c in cards if c]
 

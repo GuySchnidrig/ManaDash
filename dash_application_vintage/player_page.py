@@ -46,7 +46,7 @@ def create_player_page(player_color_map, archetype_color_map, decktype_color_map
                     id='filtered-stats-table',
                     columns=[
                         {'name': 'Season', 'id': 'season_id'},
-                        {'name': 'Player', 'id': 'player'},
+                        {'name': 'Player', 'id': 'player_id'},
                         {'name': 'Wins', 'id': 'total_wins', 'type': 'numeric'},
                         {'name': 'Win Percentage', 'id': 'win_percentage', 'type': 'float'},
                         {'name': 'Total Points', 'id': 'total_points', 'type': 'numeric'},
