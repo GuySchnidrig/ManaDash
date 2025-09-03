@@ -46,5 +46,55 @@ sample_deck_id = 3    # 👈 replace with a real draft_id/deck_id from your data
 
 
 
-names = get_deck_card_names(sample_player_id, sample_deck_id)
-print(names)
+player_elo_df = get_player_elo()
+
+player_elo_df = (
+    player_elo_df
+    .sort_values(['player', 'draft_id'])      # ensures proper order
+    .groupby(['player', 'draft_id'], as_index=False)
+    .last()  # or .tail(1) per group
+)
+
+player_elo_df = player_elo_df[
+        (player_elo_df['player'].notna()) &
+        (player_elo_df['player'] != "") &
+        (player_elo_df['player'] != "0")
+    ]
+
+initial_players = ['Dimlas', 'Andrin','Dimlas ', 'Sili', 'Manuel', 'Lukas Stalder', 'Tommy', 'Noe', 'Guy', 'Ivo']
+player_elo_df['draft_id'] = player_elo_df['draft_id'].astype(str)
+
+fig = px.line(
+    player_elo_df,
+    x='draft_id',
+    y='elo',
+    color='player',
+    title='Player ELO Over Time',
+    labels={'elo': 'ELO Rating', 'draft_id': 'Draft', 'player': 'Player'},
+    line_shape='spline'
+)
+
+# Set trace visibility based on initial_players
+if initial_players is not None:
+    for trace in fig.data:
+        # trace.name holds the player here
+        if trace.name in initial_players:
+            trace.visible = True
+        else:
+            trace.visible = 'legendonly'
+
+fig.add_hline(
+    y=1000,
+    line_dash="dot",
+    line_color="red",
+    line_width=3,
+    annotation_text="ELO = 1000",
+    annotation_position="top right"
+)
+
+fig.update_layout(
+    plot_bgcolor='white',
+    xaxis=dict(tickmode='linear', tickangle=45),
+    margin=dict(l=20, r=20, t=50, b=20),
+    height=600
+)

@@ -6,6 +6,7 @@ import dash_bootstrap_components as dbc
 from collections import defaultdict
 import json
 import sqlite3
+from dash import dash_table
 
 # Define the path to your CSV data directory
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Go up one directory
@@ -119,10 +120,9 @@ def get_decks_with_standings():
     return merged
 
 def get_player_elo():
-    """Placeholder for ELO data - would need to be calculated or stored separately"""
-    # This would need to be implemented based on your ELO calculation logic
-    # For now, return empty DataFrame
-    return pd.DataFrame(columns=['id', 'player_id', 'player', 'draft_id', 'elo'])
+    """ELO data"""
+    player_elo = get_data('elo_development')
+    return player_elo
 
 def get_full_game_stats_table():
     """Get comprehensive player stats with draft info"""
@@ -166,20 +166,36 @@ def get_all_cards():
         return pd.DataFrame(columns=['card_id', 'card_name', 'cube_color_tag'])
 
 def fetch_card_data(name):
-    """Fetch card data from Scryfall API"""
+    """Fetch card data from Scryfall API and return first available image URL."""
     url = f"https://api.scryfall.com/cards/named?fuzzy={name}"
     response = requests.get(url)
     if response.status_code == 200:
         data = response.json()
+
+        # Default empty image URL
+        image_url = ""
+
+        # Case 1: single-faced card
+        if "image_uris" in data:
+            image_url = data["image_uris"].get("normal", "")
+        # Case 2: double-faced or multi-faced card
+        elif "card_faces" in data and len(data["card_faces"]) > 0:
+            # Take the first face's normal image
+            first_face = data["card_faces"][0]
+            if "image_uris" in first_face:
+                image_url = first_face["image_uris"].get("normal", "")
+
         return {
             "name": data["name"],
-            "image_url": data["image_uris"]["normal"] if "image_uris" in data else "",
-            "cmc": data["cmc"],
-            "is_creature": "creature" in data["type_line"].lower(),
+            "image_url": image_url,
+            "cmc": data.get("cmc", 0),
+            "is_creature": "creature" in data.get("type_line", "").lower(),
+            "is_land": "land" in data.get("type_line", "").lower(),
         }
+
     return None
 
-def get_deck_card_names(player_id, deck_id):
+def get_deck_card_names(player_id, deck_id, draft_id):
     """
     Get all card names for a specific deck (by player + deck_id)
     from drafted_decks table.
@@ -189,7 +205,8 @@ def get_deck_card_names(player_id, deck_id):
     # Filter by deck_id and player_id (if both exist in schema)
     filtered = decks_df[
         (decks_df['deck_id'] == deck_id) & 
-        (decks_df['player_id'] == player_id)
+        (decks_df['player_id'] == player_id) &
+        (decks_df['draft_id'] == draft_id)
     ]
 
     # Assuming each row has a "cardName" column
@@ -280,23 +297,77 @@ def render_row(grouped_cards):
     
     return dbc.Row(rows, className="gx-2 gy-4")
 
-def calculate_stats(cards):
-    """Calculate deck statistics"""
-    total = len(cards)
-    avg = sum(c["cmc"] for c in cards) / total if total else 0
-    creatures = sum(1 for c in cards if c["is_creature"])
-    return {
-        "Total Cards": total,
+def calculate_stats(cards, player_id=None, deck_id=None, decks_df=None):
+    """Calculate deck statistics excluding lands and optionally include deck metadata"""
+    # Filter out lands
+    non_land_cards = [c for c in cards if not c.get("is_land", False)]
+    
+    total = len(non_land_cards)
+    avg = sum(c["cmc"] for c in non_land_cards) / total if total else 0
+    creatures = sum(1 for c in non_land_cards if c.get("is_creature", False))
+    
+    # Initialize stats with placeholders for metadata
+    stats = {
+        "Archetype": "",
+        "Deck Type": "",
+        "Deck Color": "",
         "Average CMC": f"{avg:.2f}",
         "Creatures": creatures,
         "Non-Creatures": total - creatures
     }
 
+    # Add deck metadata if decks_df is provided
+    if decks_df is not None and player_id is not None and deck_id is not None:
+        deck_info = decks_df[
+            (decks_df['player_id'] == player_id) &
+            (decks_df['deck_id'] == deck_id)
+        ]
+        if not deck_info.empty:
+            row = deck_info.iloc[0]
+            stats["Archetype"] = row.get('archetype', '')
+            stats["Deck Type"] = row.get('decktype', '')
+            stats["Deck Color"] = row.get('deck_color_short', '')
+    
+    return stats
+
+
+
 def render_stats_panel(stats):
-    """Render statistics panel"""
-    return html.Div([
-        *[html.P(f"{key}: {val}") for key, val in stats.items()]
-    ], className="border rounded p-3 bg-light")
+    """Render statistics panel as horizontal table with better styling and no cutoff"""
+    stats_df = pd.DataFrame([stats])
+    
+    return dash_table.DataTable(
+        columns=[{"name": col, "id": col, "presentation": "markdown"} for col in stats_df.columns],
+        data=stats_df.to_dict('records'),
+        style_table={
+            'overflowX': 'auto',     # allow horizontal scroll
+            'width': '100%',          # table fills container
+            'minWidth': '800px',      # minimum width to avoid squishing
+            'margin': '10px 0'
+        },
+        style_cell={
+            'textAlign': 'center',
+            'padding': '6px',
+            'minWidth': '120px',      # minimum column width
+            'whiteSpace': 'normal',
+            'height': 'auto',
+            'fontFamily': 'Arial, sans-serif',
+            'tableLayout': 'auto'     # allow auto layout to expand
+        },
+        style_header={
+            'backgroundColor': '#f0f0f0',
+            'fontWeight': 'bold',
+            'fontSize': '14px',
+            'borderBottom': '2px solid #ccc'
+        },
+        style_data_conditional=[
+            {
+                'if': {'row_index': 0},
+                'backgroundColor': '#fafafa'
+            }
+        ],
+        fixed_rows={'headers': True},
+    )
 
 # Initialize data loading - call this when your app starts
 def initialize_data():

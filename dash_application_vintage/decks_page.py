@@ -22,6 +22,9 @@ def create_decks_page(player_color_map, archetype_color_map, decktype_color_map)
     
     vintage_decks_df = get_vintage_decks()
     decks_with_standings = get_decks_with_standings()
+
+    # Keep only unique deck IDs
+    unique_decks = vintage_decks_df.drop_duplicates(subset='deck_id')
     
     # Load data
     players_df = get_vintage_players()
@@ -31,10 +34,19 @@ def create_decks_page(player_color_map, archetype_color_map, decktype_color_map)
         {'label': row['player'], 'value': row['player_id']} 
         for _, row in players_df.iterrows()
     ]
+    
+    # Generate unique deck options for the dropdown
+    deck_options = [
+    {
+        'label': f"{row['deck_id']} (Draft {row['draft_id']})",
+        'value': f"{row['deck_id']}|{row['draft_id']}"
+    }
+    for _, row in unique_decks.iterrows()
+]
     # Set default value to the first player's ID if available
     default_player_id = player_options[0]['value'] if player_options else None
 
-    # Sidebar for player selection
+    # Sidebar for player selection (responsive)
     sidebar = dbc.Col(
         [
             html.H4("Select Player"),
@@ -48,12 +60,14 @@ def create_decks_page(player_color_map, archetype_color_map, decktype_color_map)
             html.H5("Player's Decks"),
             dcc.Dropdown(
                 id='deck-dropdown',
-                options=[],
+                options=deck_options,
                 placeholder="Choose a deck",
                 style={'margin-bottom': '10px'}
             )
         ],
-        width=2,
+        xs=12,  # full width on extra small screens
+        sm=6,   # half width on small screens
+        md=2,   # 2 units on medium screens
         style={'padding': '20px', 'max-width': '250px', 'margin-bottom': '10px'}
     )
 

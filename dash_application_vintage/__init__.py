@@ -90,18 +90,19 @@ def create_dash_application_vintage(flask_app):
         dcc.Location(id='url', refresh=False),
         dbc.Navbar(
             dbc.Container(
-                html.Div(
-                    [
-                        dbc.NavbarBrand(
-                            [
-                                html.Img(
-                                    src="https://raw.githubusercontent.com/GuySchnidrig/ManaDash/868018bbeeabbd486be438a99f62744b0ec9c7de/icons/scroll-unfurled-svgrepo-com.svg",
-                                    style={"width": "30px", "height": "30px"}
-                                ),
-                                html.Span("ManaDash", style={"margin-left": "8px"})
-                            ],
-                            href="/",
-                        ),
+                [
+                    dbc.NavbarBrand(
+                        [
+                            html.Img(
+                                src="https://raw.githubusercontent.com/GuySchnidrig/ManaDash/868018bbeeabbd486be438a99f62744b0ec9c7de/icons/scroll-unfurled-svgrepo-com.svg",
+                                style={"width": "30px", "height": "30px"}
+                            ),
+                            html.Span("ManaDash", style={"margin-left": "8px"})
+                        ],
+                        href="/",
+                    ),
+                    dbc.NavbarToggler(id="navbar-toggler"),
+                    dbc.Collapse(
                         dbc.Nav(
                             [
                                 dbc.NavLink("Vintage Cube", href="/vintage/", active="exact"),
@@ -112,32 +113,37 @@ def create_dash_application_vintage(flask_app):
                                 dbc.NavLink("Standings", href="/vintage/standings", active="exact"),
                             ],
                             navbar=True,
+                            className="ms-auto",  # pushes links to the right
                         ),
-                    ],
-                    style={"display": "flex", "alignItems": "center", "justifyContent": "flex-start", "gap": "1rem"}
-                ),
-                fluid=True,
+                        id="navbar-collapse",
+                        navbar=True,
+                    ),
+                ]
             ),
             color="primary",
             dark=True,
-            className="sticky-top" 
+            className="sticky-top"
         ),
         dcc.Loading(
-        id="loading-spinner",
-        type="default",  # Options: 'default', 'circle', 'dot', 'cube'
-        fullscreen=False,
-        children=html.Div(id='page-content', style={'position': 'relative', 'minHeight': '200px'})
-    )
+            id="loading-spinner",
+            type="default",
+            fullscreen=False,
+            children=html.Div(id='page-content', style={'position': 'relative', 'minHeight': '200px'})
+        )
     ])
     
 
     # Callback to update the figure based on player selection
     @dash_app.callback(
-        Output('archetype-plot', 'figure'),
-        Output('decktype-plot', 'figure'),
-        Output('filtered-stats-table', 'data'),
-        Input('player-dropdown', 'value')
+        Output("navbar-collapse", "is_open"),
+        Input("navbar-toggler", "n_clicks"),
+        State("navbar-collapse", "is_open")
     )
+    def toggle_navbar(n, is_open):
+        if n:
+            return not is_open
+        return is_open
+    
     def update_player_data(selected_player_id):
         decks_with_standings = get_decks_with_standings()
         game_stats = get_full_game_stats_table()
@@ -276,10 +282,28 @@ def create_dash_application_vintage(flask_app):
     def update_deck_dropdown(selected_player_id):
         if not selected_player_id:
             return [], None
+        
+        # Filter decks by player
         filtered_decks = vintage_decks_df[vintage_decks_df['player_id'] == selected_player_id]
-        filtered_decks = filtered_decks.sort_values('deck_id', ascending=False)
-        deck_options = [{'label': str(row['deck_id']), 'value': row['deck_id']} for _, row in filtered_decks.iterrows()]
+        
+        # Keep only unique deck IDs
+        unique_decks = filtered_decks.drop_duplicates(subset='deck_id')
+        
+        # Sort deck IDs descending (optional)
+        unique_decks = unique_decks.sort_values('deck_id', ascending=False)
+        
+        # Create options
+        deck_options = [
+        {
+            'label': f"{row['deck_id']} (Draft {row['draft_id']})",
+            'value': f"{row['deck_id']}|{row['draft_id']}"  # encoding
+        }
+        for _, row in unique_decks.iterrows()
+    ]
+
+        # Set default value to first deck if exists
         default_value = deck_options[0]['value'] if deck_options else None
+        
         return deck_options, default_value
     
     # Callback to update card display and stats when player or deck changes
@@ -293,14 +317,22 @@ def create_dash_application_vintage(flask_app):
     def update_card_rows(player_id, deck_id):
         if not player_id or not deck_id:
             return "", "", ""
-        card_names = get_deck_card_names(player_id, deck_id)
+        
+        try:
+            deck_id_str, draft_id_str = deck_id.split('|')
+            deck_id, draft_id = int(deck_id_str), int(draft_id_str)
+        except Exception:
+            return "", "", ""
+        
+        card_names = get_deck_card_names(player_id, deck_id, draft_id)
         cards = [fetch_card_data(name) for name in card_names]
         cards = [c for c in cards if c]
 
         creatures = [c for c in cards if c["is_creature"]]
         non_creatures = [c for c in cards if not c["is_creature"]]
+        non_land_cards = [c for c in cards if not c.get("is_land", False)]
 
-        stats = calculate_stats(cards)
+        stats = calculate_stats(non_land_cards, deck_id=deck_id, player_id=player_id, decks_df=vintage_decks_df)
 
         return render_row(group_by_cmc(creatures)), render_row(group_by_cmc(non_creatures)), render_stats_panel(stats)
     
