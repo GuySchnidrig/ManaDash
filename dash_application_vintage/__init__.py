@@ -131,9 +131,7 @@ def create_dash_application_vintage(flask_app):
             children=html.Div(id='page-content', style={'position': 'relative', 'minHeight': '200px'})
         )
     ])
-    
-
-    # Callback to update the figure based on player selection
+        
     @dash_app.callback(
         Output("navbar-collapse", "is_open"),
         Input("navbar-toggler", "n_clicks"),
@@ -144,6 +142,13 @@ def create_dash_application_vintage(flask_app):
             return not is_open
         return is_open
     
+    # Callback to update the figure based on player selection
+    @dash_app.callback(
+        Output('archetype-plot', 'figure'),
+        Output('decktype-plot', 'figure'),
+        Output('filtered-stats-table', 'data'),
+        Input('player-dropdown', 'value')
+    )
     def update_player_data(selected_player_id):
         decks_with_standings = get_decks_with_standings()
         game_stats = get_full_game_stats_table()
@@ -231,10 +236,10 @@ def create_dash_application_vintage(flask_app):
         return archetype_fig, decktype_fig, filtered_stats_summary
 
     @dash_app.callback(
-        Output('card-image-div', 'children'),  # Update div with the image
-        Input('table', 'active_cell'),          # Detect the active cell (hovered row)
-        Input('table', 'data'),                  # Get the table data
-    )
+            Output('card-image-div', 'children'),  # Update div with the image
+            Input('table', 'active_cell'),          # Detect the active cell (hovered row)
+            Input('table', 'data'),                  # Get the table data
+        )
     def update_card_image(active_cell, rows):
         if active_cell:
             # Get the row index from the active cell
@@ -278,7 +283,6 @@ def create_dash_application_vintage(flask_app):
     Output('deck-dropdown', 'value'),
     Input('player-dropdown', 'value')
     )
-    
     def update_deck_dropdown(selected_player_id):
         if not selected_player_id:
             return [], None
