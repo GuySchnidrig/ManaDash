@@ -12,6 +12,7 @@ import matplotlib.colors as mcolors
 
 # Import local functions and pages
 from backend.game_data import *
+
 def create_archetypes_page(player_color_map, archetype_color_map, decktype_color_map):
     
     vintage_decks_df = get_vintage_decks()
@@ -51,7 +52,6 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
     summary_df_bar = decks_with_standings.groupby(['decktype']).agg(deck_types_count=('deck_id', 'nunique')).reset_index()
     summary_df_bar = summary_df_bar.sort_values('deck_types_count', ascending=False).head(10)
 
-
     decktype_fig = px.bar(
     summary_df_bar,
     x='decktype',
@@ -72,9 +72,12 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
     tickvals=summary_df_bar['decktype']
     )
     
-    
-    # Archtypes win plot
-    summary_decks_with_standings = archetype_game_winrate.sort_values('game_win_rate', ascending=False)
+    # Archtypes win plot - FILTERED FOR 50+ GAMES
+    # Assuming archetype_game_winrate has a column for games played (adjust column name as needed)
+    archetype_game_winrate_filtered = archetype_game_winrate[
+        archetype_game_winrate['games_played'] >= 50  # Adjust column name if different
+    ]
+    summary_decks_with_standings = archetype_game_winrate_filtered.sort_values('game_win_rate', ascending=False)
 
     win_archetype_fig = px.bar(
     summary_decks_with_standings,
@@ -82,8 +85,9 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
     y='game_win_rate',
     color='archetype',
     color_discrete_map=archetype_color_map,
-    title='Winning Archetypes',
+    title='Winning Archetypes (50+ Games)',
     labels={'game_win_rate': 'Game Win Rate', 'archetype': ''},
+    hover_data=['games_played']
     )
     
     win_archetype_fig.update_layout(
@@ -97,9 +101,12 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
     tickvals=summary_decks_with_standings['archetype']
     )
     
-    # Decktpyes win plot
-
-    decktype_game_winrate_plot = decktype_game_winrate.sort_values('game_winrate', ascending=False).head(10)
+    # Decktypes win plot - FILTERED FOR 50+ GAMES
+    # Assuming decktype_game_winrate has a column for games played (adjust column name as needed)
+    decktype_game_winrate_filtered = decktype_game_winrate[
+        decktype_game_winrate['games_played'] >= 50  # Adjust column name if different
+    ]
+    decktype_game_winrate_plot = decktype_game_winrate_filtered.sort_values('game_winrate', ascending=False).head(10)
 
     win_decktype_fig = px.bar(
     decktype_game_winrate_plot,
@@ -107,8 +114,9 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
     y='game_winrate',
     color='decktype',
     color_discrete_map=decktype_color_map,
-    title='Winning Decktypes',
+    title='Winning Decktypes (50+ Games)',
     labels={'game_winrate': 'Game Win Rate', 'decktype': ''},
+    hover_data=['games_played']
     )
     
     win_decktype_fig.update_layout(
@@ -121,8 +129,12 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
     tickvals=decktype_game_winrate_plot['decktype']
     )
     
-    # Archtypes win plot match
-    archetype_match_winrate_plot_df = archetype_match_winrate.sort_values('match_win_rate', ascending=False)
+    # Archtypes match win plot - FILTERED FOR 20+ GAMES
+    # Assuming archetype_match_winrate has a column for matches played (adjust column name as needed)
+    archetype_match_winrate_filtered = archetype_match_winrate[
+        archetype_match_winrate['matches_played'] >= 20  # Adjust column name if different
+    ]
+    archetype_match_winrate_plot_df = archetype_match_winrate_filtered.sort_values('match_win_rate', ascending=False)
 
     archetype_match_winrate_plot = px.bar(
     archetype_match_winrate_plot_df,
@@ -130,8 +142,9 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
     y='match_win_rate',
     color='archetype',
     color_discrete_map=archetype_color_map,
-    title='Winning Archetypes',
+    title='Winning Archetypes by Match (20+ Matches)',
     labels={'match_win_rate': 'Match Win Rate', 'archetype': ''},
+    hover_data=['matches_played']
     )
     
     archetype_match_winrate_plot.update_layout(
@@ -145,9 +158,12 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
     tickvals=archetype_match_winrate_plot_df['archetype']
     )
     
-    # Decktpyes win plot match
-
-    summary_decks_with_standings_decktype = decktype_match_winrate.sort_values('match_win_rate', ascending=False).head(10)
+    # Decktypes match win plot - FILTERED FOR 20+ GAMES
+    # Assuming decktype_match_winrate has a column for matches played (adjust column name as needed)
+    decktype_match_winrate_filtered = decktype_match_winrate[
+        decktype_match_winrate['matches_played'] >= 20  # Adjust column name if different
+    ]
+    summary_decks_with_standings_decktype = decktype_match_winrate_filtered.sort_values('match_win_rate', ascending=False).head(10)
 
     decktype_match_winrate_plot = px.bar(
     summary_decks_with_standings_decktype,
@@ -155,8 +171,9 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
     y='match_win_rate',
     color='decktype',
     color_discrete_map=decktype_color_map,
-    title='Winning Decktypes',
+    title='Winning Decktypes by Match (20+ Matches)',
     labels={'match_win_rate': 'Match Win Rate', 'decktype': ''},
+    hover_data=['matches_played']
     )
     
     decktype_match_winrate_plot.update_layout(
@@ -169,7 +186,7 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
     tickvals=summary_decks_with_standings_decktype['decktype']
     )
 
-  # Return the layout with graphs and multiple tables arranged in a grid
+    # Return the layout with graphs and multiple tables arranged in a grid
     return html.Div([
             dcc.Graph(figure=archetype_fig,
                           config={
