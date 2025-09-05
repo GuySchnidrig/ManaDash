@@ -57,7 +57,15 @@ def create_landing_page(player_color_map, archetype_color_map):
         plot_bgcolor='white',
         showlegend=False
     )
-    
+    archetype_fig.update_xaxes(
+    tickangle=0,  # Can keep horizontal or slightly tilted
+    ticktext=wrap_labels(summary_df_bar['archetype']),
+    tickvals=summary_df_bar['archetype']
+    )
+    archetype_fig.update_yaxes(
+    range=[0.3, summary_df_bar['game_win_rate'].max()],
+    title='Game Win Rate'
+)
     # Pie chart for games won
     game_data_df_pie = vintage_standings_df[vintage_standings_df['standing'] == 1]  # Filter for wins
     summary_df_pie = game_data_df_pie.groupby(['player']).agg(games_won=('draft_id', 'count')).reset_index()
