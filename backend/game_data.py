@@ -299,13 +299,14 @@ def render_row(grouped_cards):
 
 def calculate_stats(cards, player_id=None, deck_id=None, decks_df=None):
     """Calculate deck statistics excluding lands and optionally include deck metadata"""
+    standings = get_vintage_standings()
     # Filter out lands
     non_land_cards = [c for c in cards if not c.get("is_land", False)]
-    
+   
     total = len(non_land_cards)
     avg = sum(c["cmc"] for c in non_land_cards) / total if total else 0
     creatures = sum(1 for c in non_land_cards if c.get("is_creature", False))
-    
+   
     # Initialize stats with placeholders for metadata
     stats = {
         "Archetype": "",
@@ -313,9 +314,10 @@ def calculate_stats(cards, player_id=None, deck_id=None, decks_df=None):
         "Deck Color": "",
         "Average CMC": f"{avg:.2f}",
         "Creatures": creatures,
-        "Non-Creatures": total - creatures
+        "Non-Creatures": total - creatures,
+        "Match Points": ""
     }
-
+    
     # Add deck metadata if decks_df is provided
     if decks_df is not None and player_id is not None and deck_id is not None:
         deck_info = decks_df[
@@ -327,32 +329,49 @@ def calculate_stats(cards, player_id=None, deck_id=None, decks_df=None):
             stats["Archetype"] = row.get('archetype', '')
             stats["Deck Type"] = row.get('decktype', '')
             stats["Deck Color"] = row.get('deck_color_short', '')
-    
+            
+            # Get draft_id from decks dataframe
+            draft_id = row.get('draft_id')
+            
+            # Filter standings based on draft_id and player_id
+            if draft_id is not None:
+                filtered_standings = standings[
+                    (standings['draft_id'] == draft_id) &
+                    (standings['player_id'] == player_id)
+                ]
+                
+                # Get match_points from filtered standings
+                if not filtered_standings.empty:
+                    standing_row = filtered_standings.iloc[0]
+                    stats["Match Points"] = standing_row.get('match_points', 0)
+   
     return stats
-
 
 
 def render_stats_panel(stats):
     """Render statistics panel as horizontal table with better styling and no cutoff"""
     stats_df = pd.DataFrame([stats])
-    
+   
     return dash_table.DataTable(
         columns=[{"name": col, "id": col, "presentation": "markdown"} for col in stats_df.columns],
         data=stats_df.to_dict('records'),
         style_table={
             'overflowX': 'auto',     # allow horizontal scroll
             'width': '100%',          # table fills container
-            'minWidth': '800px',      # minimum width to avoid squishing
+            'minWidth': '1000px',     # increased minimum width for more columns
             'margin': '10px 0'
         },
         style_cell={
             'textAlign': 'center',
-            'padding': '6px',
-            'minWidth': '120px',      # minimum column width
+            'padding': '4px 8px',     # reduced padding to fit more content
+            'minWidth': '100px',      # reduced minimum column width
+            'maxWidth': '150px',      # add maximum width to prevent excessive expansion
             'whiteSpace': 'normal',
             'height': 'auto',
             'fontFamily': 'Arial, sans-serif',
-            'tableLayout': 'auto'     # allow auto layout to expand
+            'fontSize': '12px',       # slightly smaller font
+            'overflow': 'hidden',
+            'textOverflow': 'ellipsis'
         },
         style_header={
             'backgroundColor': '#f0f0f0',
@@ -368,7 +387,7 @@ def render_stats_panel(stats):
         ],
         fixed_rows={'headers': True},
     )
-
+    
 # Initialize data loading - call this when your app starts
 def initialize_data():
     """Call this function when your Dash app starts"""

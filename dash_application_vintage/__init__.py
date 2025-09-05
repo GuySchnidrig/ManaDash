@@ -61,7 +61,6 @@ def create_dash_application_vintage(flask_app):
                          url_base_pathname="/vintage/", 
                          suppress_callback_exceptions=True)
     
-    # Set custom index string with favicon, but include required Dash placeholders
     dash_app.index_string = '''
     <!DOCTYPE html>
     <html>
@@ -107,13 +106,13 @@ def create_dash_application_vintage(flask_app):
                             [
                                 dbc.NavLink("Vintage Cube", href="/vintage/", active="exact"),
                                 dbc.NavLink("Archetypes", href="/vintage/archetypes", active="exact"),
-                                dbc.NavLink("Player", href="/vintage/player", active="exact"),
-                                dbc.NavLink("Player-Elo", href="/vintage/player-elo", active="exact"),
-                                dbc.NavLink("Decks", href="/vintage/decks", active="exact"),
+                                dbc.NavLink("Players", href="/vintage/player", active="exact"),
+                                dbc.NavLink("Players-Elo", href="/vintage/player-elo", active="exact"),
+                                dbc.NavLink("Deck Viewer", href="/vintage/decks", active="exact"),
                                 dbc.NavLink("Standings", href="/vintage/standings", active="exact"),
                             ],
                             navbar=True,
-                            className="ms-auto",  # pushes links to the right
+                            className="ms-auto",
                         ),
                         id="navbar-collapse",
                         navbar=True,
