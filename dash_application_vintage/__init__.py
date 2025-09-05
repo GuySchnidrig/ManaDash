@@ -33,7 +33,7 @@ vintage_players_df = get_vintage_players()
 vintage_decks_df = get_vintage_decks()
 
 # Generate Player color mapping
-unique_players = vintage_players_df['player_id'].unique()
+unique_players = vintage_players_df['player'].unique()
 palette = sns.color_palette("hls", len(unique_players), desat = 0.85)
 color_list_p = [mcolors.to_hex(color) for color in palette]
 
@@ -182,7 +182,11 @@ def create_dash_application_vintage(flask_app):
             plot_bgcolor='white',
             showlegend=False
         )
-
+        archetype_fig.update_xaxes(
+        tickangle=0,  # Can keep horizontal or slightly tilted
+        ticktext=wrap_labels(summary_df_bar_archetype['archetype']),
+        tickvals=summary_df_bar_archetype['archetype']
+        )
         # Decktype
         summary_df_bar_decktype = (
             filtered_decks

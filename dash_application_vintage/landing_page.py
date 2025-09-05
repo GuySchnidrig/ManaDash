@@ -15,7 +15,7 @@ from backend.game_data import *
 
 def create_landing_page(player_color_map, archetype_color_map):
     vintage_standings_df = get_vintage_standings()
-    archetype_match_winrate = get_data('archetype_match_winrate')
+    archetype_game_winrate = get_data('archetype_game_winrate')
     player_game_and_match_winrate = get_data('player_game_and_match_winrate')
     
     # Drafts plot
@@ -40,17 +40,17 @@ def create_landing_page(player_color_map, archetype_color_map):
 
     # Archtypes plot
     # Create summary DataFrame for Drafts plot
-    summary_df_bar = archetype_match_winrate
-    summary_df_bar = summary_df_bar.sort_values('match_win_rate', ascending=False)
+    summary_df_bar = archetype_game_winrate
+    summary_df_bar = summary_df_bar.sort_values('game_win_rate', ascending=False)
 
     archetype_fig = px.bar(
     summary_df_bar,
     x='archetype',
-    y='match_win_rate',
+    y='game_win_rate',
     color='archetype',
     color_discrete_map=archetype_color_map,
-    title='Archetype Match Win Rate',
-    labels={'match_win_rate': 'Match Win Rate', 'archetype': ''},
+    title='Archetype Game Win Rate',
+    labels={'game_win_rate': 'Game Win Rate', 'archetype': ''},
     )
     
     archetype_fig.update_layout(
@@ -67,7 +67,7 @@ def create_landing_page(player_color_map, archetype_color_map):
         names='player',
         values='games_won',
         color='player',
-        color_discrete_map=player_color_map,
+        color_discrete_map=player_color_map,  # use full mapping
         title='Drafts Won',
     )
     piewon.update_layout(
