@@ -41,6 +41,11 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
         plot_bgcolor='white',
         showlegend=False
     )
+    archetype_fig.update_xaxes(
+    tickangle=0,  # Can keep horizontal or slightly tilted
+    ticktext=wrap_labels(summary_df_bar['archetype']),
+    tickvals=summary_df_bar['archetype']
+    )
     
     # Decktypes plot
     summary_df_bar = decks_with_standings.groupby(['decktype']).agg(deck_types_count=('deck_id', 'nunique')).reset_index()
@@ -61,6 +66,12 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
         plot_bgcolor='white',
         showlegend=False
     )
+    decktype_fig.update_xaxes(
+    tickangle=0,  # Can keep horizontal or slightly tilted
+    ticktext=wrap_labels(summary_df_bar['decktype']),
+    tickvals=summary_df_bar['decktype']
+    )
+    
     
     # Archtypes win plot
     summary_decks_with_standings = archetype_game_winrate.sort_values('game_win_rate', ascending=False)
@@ -78,6 +89,12 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
     win_archetype_fig.update_layout(
         plot_bgcolor='white',
         showlegend=False
+    )
+    
+    win_archetype_fig.update_xaxes(
+    tickangle=0,  # Can keep horizontal or slightly tilted
+    ticktext=wrap_labels(summary_decks_with_standings['archetype']),
+    tickvals=summary_decks_with_standings['archetype']
     )
     
     # Decktpyes win plot
@@ -98,6 +115,11 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
         plot_bgcolor='white',
         showlegend=False
     )
+    win_decktype_fig.update_xaxes(
+    tickangle=0,  # Can keep horizontal or slightly tilted
+    ticktext=wrap_labels(decktype_game_winrate_plot['decktype']),
+    tickvals=decktype_game_winrate_plot['decktype']
+    )
     
     # Archtypes win plot match
     archetype_match_winrate_plot_df = archetype_match_winrate.sort_values('match_win_rate', ascending=False)
@@ -115,6 +137,12 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
     archetype_match_winrate_plot.update_layout(
         plot_bgcolor='white',
         showlegend=False
+    )
+    
+    archetype_match_winrate_plot.update_xaxes(
+    tickangle=0,  # Can keep horizontal or slightly tilted
+    ticktext=wrap_labels(archetype_match_winrate_plot_df['archetype']),
+    tickvals=archetype_match_winrate_plot_df['archetype']
     )
     
     # Decktpyes win plot match
@@ -135,7 +163,11 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
         plot_bgcolor='white',
         showlegend=False
     )
-    
+    decktype_match_winrate_plot.update_xaxes(
+    tickangle=0,  # Can keep horizontal or slightly tilted
+    ticktext=wrap_labels(summary_decks_with_standings_decktype['decktype']),
+    tickvals=summary_decks_with_standings_decktype['decktype']
+    )
 
   # Return the layout with graphs and multiple tables arranged in a grid
     return html.Div([

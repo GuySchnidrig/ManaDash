@@ -6,6 +6,7 @@ import dash_bootstrap_components as dbc
 from collections import defaultdict
 import json
 import sqlite3
+import re
 from dash import dash_table
 
 # Define the path to your CSV data directory
@@ -392,3 +393,23 @@ def render_stats_panel(stats):
 def initialize_data():
     """Call this function when your Dash app starts"""
     load_all_csv_data()
+    
+def wrap_labels(labels, max_len=12):
+    wrapped_labels = []
+    for label in labels:
+        # Split at space, hyphen, or closing parenthesis, keep delimiters
+        parts = re.split(r'(\s+|-|\))', label)
+        line = ""
+        lines = []
+        for part in parts:
+            # If adding this part exceeds max length, start a new line
+            if len(line + part) > max_len:
+                if line:
+                    lines.append(line.strip())
+                line = part
+            else:
+                line += part
+        if line:
+            lines.append(line.strip())
+        wrapped_labels.append('<br>'.join(lines))
+    return wrapped_labels
