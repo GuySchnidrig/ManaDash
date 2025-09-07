@@ -14,11 +14,11 @@ from backend.game_data import *
 
 # Import local functions and pages
 
-def create_decks_page(player_color_map, archetype_color_map, decktype_color_map):
-    decks_df = get_data('decktype_game_winrate')
+def create_cards_page(player_color_map, archetype_color_map, decktype_color_map):
+    cards_df = get_data('card_game_winrate_per_season')
     
     # Sort the DataFrame by 'games_played' in descending order (you can adjust if necessary)
-    sorted_game_data_df = decks_df.sort_values(by='games_played', ascending=False)
+    sorted_game_data_df = cards_df.sort_values(by='games_played', ascending=False)
 
     # Prepare the columns for the DataTable
     columns = [{'name': col, 'id': col} for col in sorted_game_data_df.columns]

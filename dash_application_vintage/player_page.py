@@ -14,7 +14,8 @@ def create_player_page(player_color_map, archetype_color_map, decktype_color_map
         for _, row in players_df.iterrows()
     ]
     # Set default value to the first player's ID if available
-    default_player_id = player_options[0]['value'] if player_options else None
+    # default_player_id = player_options[0]['value'] if player_options else None
+    default_player_id = None
     
     # Initial empty figure
     archetype_fig = px.bar(title='Archetypes')
@@ -46,10 +47,12 @@ def create_player_page(player_color_map, archetype_color_map, decktype_color_map
                     id='filtered-stats-table',
                     columns=[
                         {'name': 'Season', 'id': 'season_id'},
-                        {'name': 'Player', 'id': 'player_id'},
+                        {'name': 'Player', 'id': 'player'},
+                        {'name': 'Games played', 'id': 'games_played'},
                         {'name': 'Wins', 'id': 'total_wins', 'type': 'numeric'},
                         {'name': 'Win Percentage', 'id': 'win_percentage', 'type': 'float'},
                         {'name': 'Total Points', 'id': 'total_points', 'type': 'numeric'},
+                        {'name': 'Average Points', 'id': 'avg_points_per_draft', 'type': 'numeric'},
                         {'name': 'Most Common Archetype', 'id': 'most_common_archetype'},
                         {'name': 'Most Common Decktype', 'id': 'most_common_decktype'},
                         {'name': 'Average OMP', 'id': 'average_omp', 'type': 'float'},

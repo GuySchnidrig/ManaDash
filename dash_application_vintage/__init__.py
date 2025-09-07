@@ -16,11 +16,13 @@ from backend.game_data import get_vintage_players
 
 from dash_application_vintage.landing_page import create_landing_page
 
-from dash_application_vintage.decks_page import create_decks_page
+from dash_application_vintage.deckviewer_page import create_deckviewer_page
 from dash_application_vintage.archetypes_page import create_archetypes_page
 from dash_application_vintage.player_page import create_player_page
 from dash_application_vintage.player_elo_page import create_player_elo_page 
 from dash_application_vintage.data_page import create_standings_page
+from dash_application_vintage.cards_page import create_cards_page
+from dash_application_vintage.decks_page import create_decks_page
 
 from backend.game_data import *
 
@@ -108,7 +110,9 @@ def create_dash_application_vintage(flask_app):
                                 dbc.NavLink("Archetypes", href="/vintage/archetypes", active="exact"),
                                 dbc.NavLink("Players", href="/vintage/player", active="exact"),
                                 dbc.NavLink("Players-Elo", href="/vintage/player-elo", active="exact"),
-                                dbc.NavLink("Deck Viewer", href="/vintage/decks", active="exact"),
+                                dbc.NavLink("Decks", href="/vintage/decks", active="exact"),
+                                dbc.NavLink("Deck Viewer", href="/vintage/deckviewer", active="exact"),
+                                dbc.NavLink("Cards", href="/vintage/cards", active="exact"),
                                 dbc.NavLink("Standings", href="/vintage/standings", active="exact"),
                             ],
                             navbar=True,
@@ -151,7 +155,10 @@ def create_dash_application_vintage(flask_app):
     def update_player_data(selected_player_id):
         decks_with_standings = get_decks_with_standings()
         game_stats = get_full_game_stats_table()
-        
+
+        # keep only unique season_id, player_id, deck_id combos
+        game_stats = game_stats.drop_duplicates(subset=["season_id", "player_id", "deck_id"])
+
         if selected_player_id:
             filtered_decks = decks_with_standings[decks_with_standings['player_id'] == selected_player_id]
             filtered_stats = game_stats[game_stats['player_id'] == selected_player_id]
@@ -216,11 +223,12 @@ def create_dash_application_vintage(flask_app):
         filtered_stats_summary = (
             filtered_stats
             .assign(is_win=lambda df: df['standing'] == 1)
-            .groupby(['season_id', 'player_id'], as_index=False)
+            .groupby(['season_id', 'player_id', 'player'], as_index=False)
             .agg(
+                games_played=('draft_id', 'nunique'), 
                 archetype_count=('archetype', 'size'),
                 total_wins=('is_win', 'sum'),
-                total_points=('game_points', 'sum'),
+                total_points=('match_points', 'sum'),
                 most_common_archetype=('archetype', lambda x: x.value_counts().idxmax()),
                 most_common_decktype=('decktype', lambda x: x.value_counts().idxmax()),
                 average_omp=('OMP', 'mean'),
@@ -228,9 +236,18 @@ def create_dash_application_vintage(flask_app):
                 average_ogp=('OGP', 'mean'),
             )
             .assign(
-                win_percentage=lambda df: df['total_wins'] / df['archetype_count'] * 100
+                win_percentage=lambda df: df['total_wins'] / df['archetype_count'] * 100,
+                avg_points_per_draft=lambda df: df['total_points'] / df['games_played'] 
             )
-            .sort_values(by='archetype_count', ascending=False)
+            .round({
+                'average_omp': 2,
+                'average_gwp': 2,
+                'average_ogp': 2,
+                'win_percentage': 2,
+                'avg_points_per_draft': 2
+
+            })
+            .sort_values(by='games_played', ascending=False)
         )
 
 
@@ -383,16 +400,25 @@ def create_dash_application_vintage(flask_app):
     def display_page(pathname):
         if pathname == '/vintage/player':
             return create_player_page(player_color_map, archetype_color_map, decktype_color_map)
+        
         elif pathname == '/vintage/archetypes':
             return create_archetypes_page(player_color_map, archetype_color_map, decktype_color_map)
+        
+        elif pathname == '/vintage/deckviewer':
+            return create_deckviewer_page(player_color_map, archetype_color_map, decktype_color_map)
+        
         elif pathname == '/vintage/decks':
             return create_decks_page(player_color_map, archetype_color_map, decktype_color_map)
+        
+        elif pathname == '/vintage/cards':
+            return create_cards_page(player_color_map, archetype_color_map, decktype_color_map)
         
         elif pathname == '/vintage/player-elo':
             return create_player_elo_page(player_color_map, archetype_color_map, decktype_color_map)
 
         elif pathname == '/vintage/standings':
             return create_standings_page()
+        
         elif pathname == '/':
             return dcc.Location(pathname='/redirect_to_flask', id='redirect_to_flask')
         else:
