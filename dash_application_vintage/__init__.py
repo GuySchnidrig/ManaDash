@@ -150,11 +150,13 @@ def create_dash_application_vintage(flask_app):
         Output('archetype-plot', 'figure'),
         Output('decktype-plot', 'figure'),
         Output('filtered-stats-table', 'data'),
+        Output('vs-stats-summary', 'data'),
         Input('player-dropdown', 'value')
     )
     def update_player_data(selected_player_id):
         decks_with_standings = get_decks_with_standings()
         game_stats = get_full_game_stats_table()
+        vs_stats = get_vs_player_game_and_match_winrate()
 
         # keep only unique season_id, player_id, deck_id combos
         game_stats = game_stats.drop_duplicates(subset=["season_id", "player_id", "deck_id"])
@@ -162,9 +164,11 @@ def create_dash_application_vintage(flask_app):
         if selected_player_id:
             filtered_decks = decks_with_standings[decks_with_standings['player_id'] == selected_player_id]
             filtered_stats = game_stats[game_stats['player_id'] == selected_player_id]
+            vs_stats =  vs_stats[vs_stats['player_id'] == selected_player_id]
         else:
             filtered_decks = decks_with_standings
             filtered_stats = game_stats
+            vs_stats = vs_stats
             
         # Archetype
         summary_df_bar_archetype = (
@@ -236,24 +240,28 @@ def create_dash_application_vintage(flask_app):
                 average_ogp=('OGP', 'mean'),
             )
             .assign(
-                win_percentage=lambda df: df['total_wins'] / df['archetype_count'] * 100,
                 avg_points_per_draft=lambda df: df['total_points'] / df['games_played'] 
             )
             .round({
                 'average_omp': 2,
                 'average_gwp': 2,
                 'average_ogp': 2,
-                'win_percentage': 2,
                 'avg_points_per_draft': 2
 
             })
             .sort_values(by='games_played', ascending=False)
         )
 
+        # vs_stats
+        vs_stats_summary = vs_stats.round({
+                'game_win_rate_vs': 2,
+                'match_win_rate_vs': 2,
+            })
 
         filtered_stats_summary = filtered_stats_summary.to_dict('records')
+        vs_stats_summary = vs_stats_summary.to_dict('records')
 
-        return archetype_fig, decktype_fig, filtered_stats_summary
+        return archetype_fig, decktype_fig, filtered_stats_summary, vs_stats_summary
 
     @dash_app.callback(
             Output('card-image-div', 'children'),  # Update div with the image

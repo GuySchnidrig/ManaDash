@@ -36,28 +36,7 @@ def create_player_elo_page(player_color_map, archetype_color_map, decktype_color
     # Sort by season_id and draft_id
     player_elo_df = player_elo_df.sort_values(['season_id', 'draft_id'])
 
-    # Extract numeric season if needed
-    player_elo_df['season_num'] = player_elo_df['season_id'].astype(str).str.extract(r'(\d+)').astype(int)
-
-    # Get unique draft_ids per season and assign D numbers
-    draft_counts = (
-        player_elo_df[['season_num', 'draft_id']]
-        .drop_duplicates()  # unique draft_ids only
-        .sort_values(['season_num', 'draft_id'])
-        .groupby('season_num')
-        .cumcount() + 1  # D1, D2, ...
-    )
-    # Map back to the original dataframe
-    player_elo_df = player_elo_df.merge(
-        player_elo_df[['season_num', 'draft_id']].drop_duplicates().assign(d_in_season=draft_counts),
-        on=['season_num', 'draft_id'],
-        how='left'
-    )
-
-    # Create S*D* label
-    player_elo_df['season_draft_label'] = player_elo_df.apply(
-        lambda row: f"S{row['season_num']}D{row['d_in_season']}", axis=1
-    )
+    player_elo_df = add_season_draft_labels(player_elo_df)
 
     # Set intial players
     initial_players = ['Dimlas', 'Andrin', 'Sili', 'Manuel', 'Lukas Stalder', 'Tommy', 'Noe', 'Guy', 'Ivo']
@@ -107,6 +86,24 @@ def create_player_elo_page(player_color_map, archetype_color_map, decktype_color
         line_color="rgba(0,0,0,0.2)",  # semi-transparent black
         line_width=2,
         annotation_text="ELO = 1200",
+        annotation_position="top right"
+    )
+
+    fig.add_hline(
+        y=900,
+        line_dash="dot",
+        line_color="rgba(0,0,0,0.2)",  # semi-transparent black
+        line_width=2,
+        annotation_text="ELO = 900",
+        annotation_position="top right"
+    )
+
+    fig.add_hline(
+        y=800,
+        line_dash="dot",
+        line_color="rgba(0,0,0,0.2)",  # semi-transparent black
+        line_width=2,
+        annotation_text="ELO = 800",
         annotation_position="top right"
     )
 

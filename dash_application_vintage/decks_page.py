@@ -28,7 +28,7 @@ def create_decks_page(player_color_map, archetype_color_map, decktype_color_map)
             id='table',
             columns=columns,  # Set the columns here
             data=sorted_game_data_df.to_dict('records'),
-            style_table={'overflowX': 'auto'}, 
+            style_table={'overflowX': 'auto'},
             sort_action='native',
             filter_action='native',
             filter_options={'case':'insensitive'},

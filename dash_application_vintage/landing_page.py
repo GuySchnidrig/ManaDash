@@ -30,7 +30,7 @@ def create_landing_page(player_color_map, archetype_color_map):
         y='Played_Games',
         color='player',
         color_discrete_map=player_color_map,
-        title='Drafts',
+        title='Drafts Attended',
         labels={'Played_Games': 'Count', 'player': ''},
     )
     draftbar.update_layout(
