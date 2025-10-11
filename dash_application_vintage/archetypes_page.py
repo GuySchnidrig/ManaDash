@@ -86,20 +86,20 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
         'games_won': 'sum'  # assuming this column exists
     })
     )
-    summary_decks_with_standings['game_win_rate'] = (
+    summary_decks_with_standings['game_winrate'] = (
         summary_decks_with_standings['games_won'] / summary_decks_with_standings['games_played']
     )
 
-    summary_decks_with_standings = summary_decks_with_standings.sort_values('game_win_rate', ascending=False)
+    summary_decks_with_standings = summary_decks_with_standings.sort_values('game_winrate', ascending=False)
 
     win_archetype_fig = px.bar(
     summary_decks_with_standings,
     x='archetype',
-    y='game_win_rate',
+    y='game_winrate',
     color='archetype',
     color_discrete_map=archetype_color_map,
     title='Winning Archetypes (20+ Games)',
-    labels={'game_win_rate': 'Game Win Rate', 'archetype': ''},
+    labels={'game_winrate': 'Game Win Rate', 'archetype': ''},
     hover_data=['games_played']
     )
     
@@ -128,7 +128,7 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
         'games_won': 'sum'  
     })
     )
-    decktype_game_winrate_filtered['game_win_rate'] = (
+    decktype_game_winrate_filtered['game_winrate'] = (
         decktype_game_winrate_filtered['games_won'] / decktype_game_winrate_filtered['games_played']
     )
 
@@ -164,12 +164,12 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
     archetype_match_winrate_filtered
     .groupby('archetype', as_index=False)
     .agg({
-        'games_played': 'sum',
-        'games_won': 'sum'  # assuming this column exists
+        'matches_played': 'sum',
+        'matches_won': 'sum'  # assuming this column exists
     })
     )
-    archetype_match_winrate_filtered['game_win_rate'] = (
-        archetype_match_winrate_filtered['games_won'] / archetype_match_winrate_filtered['games_played']
+    archetype_match_winrate_filtered['match_win_rate'] = (
+        archetype_match_winrate_filtered['matches_won'] / archetype_match_winrate_filtered['matches_played']
     )
 
     archetype_match_winrate_plot_df = archetype_match_winrate_filtered.sort_values('match_win_rate', ascending=False)
@@ -206,12 +206,12 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
     decktype_match_winrate_filtered
     .groupby('decktype', as_index=False)
     .agg({
-        'games_played': 'sum',
-        'games_won': 'sum' 
+        'matches_played': 'sum',
+        'matches_won': 'sum' 
     })
     )
-    decktype_match_winrate_filtered['game_win_rate'] = (
-        decktype_match_winrate_filtered['games_won'] / decktype_match_winrate_filtered['games_played']
+    decktype_match_winrate_filtered['match_win_rate'] = (
+        decktype_match_winrate_filtered['matches_won'] / decktype_match_winrate_filtered['matches_played']
     )
 
     summary_decks_with_standings_decktype = decktype_match_winrate_filtered.sort_values('match_win_rate', ascending=False).head(10)
