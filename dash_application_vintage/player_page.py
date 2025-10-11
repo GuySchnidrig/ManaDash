@@ -200,7 +200,7 @@ def create_player_page(player_color_map, archetype_color_map, decktype_color_map
             html.H3("Decktype Winrates", style={'textAlign': 'left'}),
             html.Div(
                 dash_table.DataTable(
-                    id='combined-winrates-per-season',
+                    id='decktype-winrates',
                     sort_action='native',
                     filter_action='native',
                     filter_options={'case':'insensitive'},
@@ -238,7 +238,7 @@ def create_player_page(player_color_map, archetype_color_map, decktype_color_map
             html.H3("Combined Winrates Per Season", style={'textAlign': 'left'}),
             html.Div(
                 dash_table.DataTable(
-                    id='decktype-winrates',
+                    id='combined-winrates-per-season',
                     sort_action='native',
                     filter_action='native',
                     filter_options={'case':'insensitive'},
