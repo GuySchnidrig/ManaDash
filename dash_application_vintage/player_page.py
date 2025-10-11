@@ -1,7 +1,7 @@
 from dash import dcc, html, Input, Output, dash_table
 import plotly.express as px
 import dash_bootstrap_components as dbc
-from backend.game_data import get_vintage_players
+from backend.game_data import *
 
 def create_player_page(player_color_map, archetype_color_map, decktype_color_map):
     # Load data
@@ -105,6 +105,154 @@ def create_player_page(player_color_map, archetype_color_map, decktype_color_map
                         {'name': 'Matches Played', 'id': 'matches_played_vs', 'type': 'numeric'},
                         {'name': 'Matches Won', 'id': 'matches_won_vs', 'type': 'numeric'},
                         {'name': 'Matches Win Rate', 'id': 'match_win_rate_vs', 'type': 'numeric'}
+                    ],
+                    data=[],  # Initial empty data, will be filled by callback
+                    page_size=10,  # Adjust page size if needed
+                    style_table={'overflowX': 'auto'},  # Allow horizontal scrolling
+                    style_cell={
+                        'whiteSpace': 'normal',
+                        'height': 'auto',
+                        'minWidth': '100px',  # Minimum width for cells
+                        'maxWidth': '300px',  # Maximum width for cells
+                    },
+                    style_header={
+                        'backgroundColor': 'lightgrey',
+                        'fontWeight': 'bold'
+                    },
+                    style_data={
+                        'whiteSpace': 'normal',
+                        'height': 'auto'
+                    }
+                ),
+                style={'overflowX': 'auto'}  # Allow overflow for the table
+            ),
+            html.H3("Most played card", style={'textAlign': 'left'}),
+            html.Div(
+                dash_table.DataTable(
+                    id='most-played-card',
+                    sort_action='native',
+                    filter_action='native',
+                    filter_options={'case':'insensitive'},
+                    columns=[
+                        {'name': 'Player', 'id': 'player'},
+
+                        {'name': 'Card Name', 'id': 'card_name'},
+                        {'name': 'Pick Count', 'id': 'pick_count', 'type': 'numeric'},
+                    ],
+                    data=[],  # Initial empty data, will be filled by callback
+                    page_size=10,  # Adjust page size if needed
+                    style_table={'overflowX': 'auto'},  # Allow horizontal scrolling
+                    style_cell={
+                        'whiteSpace': 'normal',
+                        'height': 'auto',
+                        'minWidth': '100px',  # Minimum width for cells
+                        'maxWidth': '300px',  # Maximum width for cells
+                    },
+                    style_header={
+                        'backgroundColor': 'lightgrey',
+                        'fontWeight': 'bold'
+                    },
+                    style_data={
+                        'whiteSpace': 'normal',
+                        'height': 'auto'
+                    }
+                ),
+                style={'overflowX': 'auto'}  # Allow overflow for the table
+            ),
+            html.H3("Archetype Winrates", style={'textAlign': 'left'}),
+            html.Div(
+                dash_table.DataTable(
+                    id='archetype-winrates',
+                    sort_action='native',
+                    filter_action='native',
+                    filter_options={'case':'insensitive'},
+                    columns=[
+                        {'name': 'Season', 'id': 'season_id'},
+                        {'name': 'Player', 'id': 'player'},
+                        {'name': 'Archtype', 'id': 'archtype'},
+                        {'name': 'Games Won', 'id': 'games_won', 'type': 'numeric'},
+                        {'name': 'Games Played', 'id': 'games_played', 'type': 'numeric'},
+                        {'name': 'Game Win Rate', 'id': 'game_win_rate', 'type': 'numeric'},
+                        {'name': 'Matches Played', 'id': 'matches_played', 'type': 'numeric'},
+                        {'name': 'Matches Won', 'id': 'matches_won', 'type': 'numeric'},
+                        {'name': 'Matches Win Rate', 'id': 'match_win_rate', 'type': 'numeric'}
+                    ],
+                    data=[],  # Initial empty data, will be filled by callback
+                    page_size=10,  # Adjust page size if needed
+                    style_table={'overflowX': 'auto'},  # Allow horizontal scrolling
+                    style_cell={
+                        'whiteSpace': 'normal',
+                        'height': 'auto',
+                        'minWidth': '100px',  # Minimum width for cells
+                        'maxWidth': '300px',  # Maximum width for cells
+                    },
+                    style_header={
+                        'backgroundColor': 'lightgrey',
+                        'fontWeight': 'bold'
+                    },
+                    style_data={
+                        'whiteSpace': 'normal',
+                        'height': 'auto'
+                    }
+                ),
+                style={'overflowX': 'auto'}  # Allow overflow for the table
+            ),
+            html.H3("Decktype Winrates", style={'textAlign': 'left'}),
+            html.Div(
+                dash_table.DataTable(
+                    id='combined-winrates-per-season',
+                    sort_action='native',
+                    filter_action='native',
+                    filter_options={'case':'insensitive'},
+                    columns=[
+                        {'name': 'Season', 'id': 'season_id'},
+                        {'name': 'Player', 'id': 'player'},
+                        {'name': 'Decktype', 'id': 'decktype'},
+                        {'name': 'Games Won', 'id': 'games_won', 'type': 'numeric'},
+                        {'name': 'Games Played', 'id': 'games_played', 'type': 'numeric'},
+                        {'name': 'Game Win Rate', 'id': 'game_win_rate', 'type': 'numeric'},
+                        {'name': 'Matches Played', 'id': 'matches_played', 'type': 'numeric'},
+                        {'name': 'Matches Won', 'id': 'matches_won', 'type': 'numeric'},
+                        {'name': 'Matches Win Rate', 'id': 'match_win_rate', 'type': 'numeric'}
+                    ],
+                    data=[],  # Initial empty data, will be filled by callback
+                    page_size=10,  # Adjust page size if needed
+                    style_table={'overflowX': 'auto'},  # Allow horizontal scrolling
+                    style_cell={
+                        'whiteSpace': 'normal',
+                        'height': 'auto',
+                        'minWidth': '100px',  # Minimum width for cells
+                        'maxWidth': '300px',  # Maximum width for cells
+                    },
+                    style_header={
+                        'backgroundColor': 'lightgrey',
+                        'fontWeight': 'bold'
+                    },
+                    style_data={
+                        'whiteSpace': 'normal',
+                        'height': 'auto'
+                    }
+                ),
+                style={'overflowX': 'auto'}  # Allow overflow for the table
+            ),
+            html.H3("Combined Winrates Per Season", style={'textAlign': 'left'}),
+            html.Div(
+                dash_table.DataTable(
+                    id='decktype-winrates',
+                    sort_action='native',
+                    filter_action='native',
+                    filter_options={'case':'insensitive'},
+                    columns=[
+                        {'name': 'Season', 'id': 'season_id'},
+                        {'name': 'Player', 'id': 'player'},
+                        {'name': 'Card Name', 'id': 'card_name'},
+                        {'name': 'Drafts with Card', 'id': 'num_drafts_with_card'},
+                        {'name': 'Games Won', 'id': 'games_won', 'type': 'numeric'},
+                        {'name': 'Games Played', 'id': 'games_played', 'type': 'numeric'},
+                        {'name': 'Game Win Rate', 'id': 'game_win_rate', 'type': 'numeric'},
+                        {'name': 'Matches Played', 'id': 'matches_played', 'type': 'numeric'},
+                        {'name': 'Matches Won', 'id': 'matches_won', 'type': 'numeric'},
+                        {'name': 'Matches Win Rate', 'id': 'match_win_rate', 'type': 'numeric'}
                     ],
                     data=[],  # Initial empty data, will be filled by callback
                     page_size=10,  # Adjust page size if needed

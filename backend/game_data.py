@@ -87,6 +87,24 @@ def get_vs_player_game_and_match_winrate():
     """Get drafts data"""
     return get_data('vs_player_game_and_match_winrate')
 
+
+def get_most_played_card_by_player():
+    """Get drafts data"""
+    return get_data('most_played_card_by_player')
+
+def get_player_archetype_winrates():
+    """Get drafts data"""
+    return get_data('player_archetype_winrates')
+
+def get_player_decktype_winrates():
+    """Get drafts data"""
+    return get_data('player_decktype_winrates')
+
+def get_combined_winrates_per_season():
+    """Get drafts data"""
+    return get_data('combined_winrates_per_season')
+
+
 def get_vintage_players():
     """Get unique players from drafted_decks"""
     decks_df = get_data('standings')

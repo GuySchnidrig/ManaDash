@@ -43,7 +43,7 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
         showlegend=False
     )
     archetype_fig.update_xaxes(
-    tickangle=0,  # Can keep horizontal or slightly tilted
+    # tickangle=0,  # Can keep horizontal or slightly tilted
     ticktext=wrap_labels(summary_df_bar['archetype']),
     tickvals=summary_df_bar['archetype']
     )
@@ -67,7 +67,7 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
         showlegend=False
     )
     decktype_fig.update_xaxes(
-    tickangle=0,  # Can keep horizontal or slightly tilted
+    #tickangle=0,  # Can keep horizontal or slightly tilted
     ticktext=wrap_labels(summary_df_bar['decktype']),
     tickvals=summary_df_bar['decktype']
     )
@@ -77,7 +77,20 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
     archetype_game_winrate_filtered = archetype_game_winrate[
         archetype_game_winrate['games_played'] >= 20  # Adjust column name if different
     ]
-    summary_decks_with_standings = archetype_game_winrate_filtered.sort_values('game_win_rate', ascending=False)
+    
+    summary_decks_with_standings = (
+    archetype_game_winrate_filtered
+    .groupby('archetype', as_index=False)
+    .agg({
+        'games_played': 'sum',
+        'games_won': 'sum'  # assuming this column exists
+    })
+    )
+    summary_decks_with_standings['game_win_rate'] = (
+        summary_decks_with_standings['games_won'] / summary_decks_with_standings['games_played']
+    )
+
+    summary_decks_with_standings = summary_decks_with_standings.sort_values('game_win_rate', ascending=False)
 
     win_archetype_fig = px.bar(
     summary_decks_with_standings,
@@ -96,7 +109,7 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
     )
     
     win_archetype_fig.update_xaxes(
-    tickangle=0,  # Can keep horizontal or slightly tilted
+    #tickangle=0,  # Can keep horizontal or slightly tilted
     ticktext=wrap_labels(summary_decks_with_standings['archetype']),
     tickvals=summary_decks_with_standings['archetype']
     )
@@ -106,6 +119,19 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
     decktype_game_winrate_filtered = decktype_game_winrate[
         decktype_game_winrate['games_played'] >= 20  # Adjust column name if different
     ]
+
+    decktype_game_winrate_filtered = (
+    decktype_game_winrate_filtered
+    .groupby('decktype', as_index=False)
+    .agg({
+        'games_played': 'sum',
+        'games_won': 'sum'  
+    })
+    )
+    decktype_game_winrate_filtered['game_win_rate'] = (
+        decktype_game_winrate_filtered['games_won'] / decktype_game_winrate_filtered['games_played']
+    )
+
     decktype_game_winrate_plot = decktype_game_winrate_filtered.sort_values('game_winrate', ascending=False).head(10)
 
     win_decktype_fig = px.bar(
@@ -124,7 +150,7 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
         showlegend=False
     )
     win_decktype_fig.update_xaxes(
-    tickangle=0,  # Can keep horizontal or slightly tilted
+    #tickangle=0,  # Can keep horizontal or slightly tilted
     ticktext=wrap_labels(decktype_game_winrate_plot['decktype']),
     tickvals=decktype_game_winrate_plot['decktype']
     )
@@ -134,6 +160,18 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
     archetype_match_winrate_filtered = archetype_match_winrate[
         archetype_match_winrate['matches_played'] >= 5  # Adjust column name if different
     ]
+    archetype_match_winrate_filtered = (
+    archetype_match_winrate_filtered
+    .groupby('archetype', as_index=False)
+    .agg({
+        'games_played': 'sum',
+        'games_won': 'sum'  # assuming this column exists
+    })
+    )
+    archetype_match_winrate_filtered['game_win_rate'] = (
+        archetype_match_winrate_filtered['games_won'] / archetype_match_winrate_filtered['games_played']
+    )
+
     archetype_match_winrate_plot_df = archetype_match_winrate_filtered.sort_values('match_win_rate', ascending=False)
 
     archetype_match_winrate_plot = px.bar(
@@ -153,7 +191,7 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
     )
     
     archetype_match_winrate_plot.update_xaxes(
-    tickangle=0,  # Can keep horizontal or slightly tilted
+    #tickangle=0,  # Can keep horizontal or slightly tilted
     ticktext=wrap_labels(archetype_match_winrate_plot_df['archetype']),
     tickvals=archetype_match_winrate_plot_df['archetype']
     )
@@ -163,6 +201,19 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
     decktype_match_winrate_filtered = decktype_match_winrate[
         decktype_match_winrate['matches_played'] >= 5  # Adjust column name if different
     ]
+
+    decktype_match_winrate_filtered = (
+    decktype_match_winrate_filtered
+    .groupby('decktype', as_index=False)
+    .agg({
+        'games_played': 'sum',
+        'games_won': 'sum' 
+    })
+    )
+    decktype_match_winrate_filtered['game_win_rate'] = (
+        decktype_match_winrate_filtered['games_won'] / decktype_match_winrate_filtered['games_played']
+    )
+
     summary_decks_with_standings_decktype = decktype_match_winrate_filtered.sort_values('match_win_rate', ascending=False).head(10)
 
     decktype_match_winrate_plot = px.bar(
@@ -181,7 +232,7 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
         showlegend=False
     )
     decktype_match_winrate_plot.update_xaxes(
-    tickangle=0,  # Can keep horizontal or slightly tilted
+    #tickangle=0,  # Can keep horizontal or slightly tilted
     ticktext=wrap_labels(summary_decks_with_standings_decktype['decktype']),
     tickvals=summary_decks_with_standings_decktype['decktype']
     )

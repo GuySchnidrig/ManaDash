@@ -151,12 +151,20 @@ def create_dash_application_vintage(flask_app):
         Output('decktype-plot', 'figure'),
         Output('filtered-stats-table', 'data'),
         Output('vs-stats-summary', 'data'),
+        Output('most-played-card', 'data'),
+        Output('archetype-winrates', 'data'),
+        Output('decktype-winrates', 'data'),
+        Output('combined-winrates-per-season', 'data'),
         Input('player-dropdown', 'value')
     )
     def update_player_data(selected_player_id):
         decks_with_standings = get_decks_with_standings()
         game_stats = get_full_game_stats_table()
         vs_stats = get_vs_player_game_and_match_winrate()
+        most_played_card = get_most_played_card_by_player()
+        player_archetype_winrates = get_player_archetype_winrates()
+        player_decktype_winrates = get_player_decktype_winrates()
+        combined_winrates_per_season = get_combined_winrates_per_season()
 
         # keep only unique season_id, player_id, deck_id combos
         game_stats = game_stats.drop_duplicates(subset=["season_id", "player_id", "deck_id"])
@@ -165,11 +173,20 @@ def create_dash_application_vintage(flask_app):
             filtered_decks = decks_with_standings[decks_with_standings['player_id'] == selected_player_id]
             filtered_stats = game_stats[game_stats['player_id'] == selected_player_id]
             vs_stats =  vs_stats[vs_stats['player_id'] == selected_player_id]
+            most_played_card =  most_played_card[most_played_card['player_id'] == selected_player_id]
+            player_archetype_winrates =  player_archetype_winrates[player_archetype_winrates['player_id'] == selected_player_id]
+            player_decktype_winrates =  player_decktype_winrates[player_decktype_winrates['player_id'] == selected_player_id]
+            combined_winrates_per_season =  combined_winrates_per_season[combined_winrates_per_season['player_id'] == selected_player_id]
+
         else:
             filtered_decks = decks_with_standings
             filtered_stats = game_stats
             vs_stats = vs_stats
-            
+            most_played_card = most_played_card
+            player_archetype_winrates = player_archetype_winrates
+            player_decktype_winrates = player_decktype_winrates
+            combined_winrates_per_season = combined_winrates_per_season
+
         # Archetype
         summary_df_bar_archetype = (
             filtered_decks
@@ -257,11 +274,37 @@ def create_dash_application_vintage(flask_app):
                 'game_win_rate_vs': 2,
                 'match_win_rate_vs': 2,
             })
+        
+        # most_played_card
+        most_played_card_summary = most_played_card
 
+        # player archetype winrates
+        player_archetype_winrates_summary = player_archetype_winrates.round({
+                'game_win_rate': 2,
+                'match_win_rate': 2,
+            })
+
+        # player_decktype_winrates
+        player_decktype_winrates_summary = player_decktype_winrates.round({
+                'game_win_rate': 2,
+                'match_win_rate': 2,
+            })
+
+        # player_decktype_winrates
+        combined_winrates_per_season_summary = combined_winrates_per_season.round({
+                'game_win_rate': 2,
+                'match_win_rate': 2,
+            })
+
+        # dicts
         filtered_stats_summary = filtered_stats_summary.to_dict('records')
         vs_stats_summary = vs_stats_summary.to_dict('records')
+        most_played_card_summary =  most_played_card_summary.to_dict('records')
+        player_archetype_winrates_summary = player_archetype_winrates_summary.to_dict('records')
+        player_decktype_winrates_summary = player_decktype_winrates_summary.to_dict('records')
+        combined_winrates_per_season_summary = combined_winrates_per_season_summary.to_dict('records')
 
-        return archetype_fig, decktype_fig, filtered_stats_summary, vs_stats_summary
+        return archetype_fig, decktype_fig, filtered_stats_summary, vs_stats_summary, most_played_card_summary, player_archetype_winrates_summary, player_decktype_winrates_summary, combined_winrates_per_season_summary
 
     @dash_app.callback(
             Output('card-image-div', 'children'),  # Update div with the image

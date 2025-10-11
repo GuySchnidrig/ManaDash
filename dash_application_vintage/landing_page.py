@@ -41,6 +41,19 @@ def create_landing_page(player_color_map, archetype_color_map):
     # Archtypes plot
     # Create summary DataFrame for Drafts plot
     summary_df_bar = archetype_game_winrate
+
+    summary_df_bar = (
+    summary_df_bar
+    .groupby('archetype', as_index=False)
+    .agg({
+        'games_played': 'sum',
+        'games_won': 'sum'  # assuming this column exists
+    })
+    )
+    summary_df_bar['game_win_rate'] = (
+        summary_df_bar['games_won'] / summary_df_bar['games_played']
+    )
+
     summary_df_bar = summary_df_bar.sort_values('game_win_rate', ascending=False)
 
     archetype_fig = px.bar(
@@ -87,6 +100,19 @@ def create_landing_page(player_color_map, archetype_color_map):
     
     # Gamewinrate 
     summary_df_avg_points = player_game_and_match_winrate
+
+    summary_df_avg_points = (
+    summary_df_avg_points
+    .groupby('player', as_index=False)
+    .agg({
+        'games_played': 'sum',
+        'games_won': 'sum'  # assuming this column exists
+    })
+    )
+    summary_df_avg_points['game_win_rate'] = (
+        summary_df_avg_points['games_won'] / summary_df_avg_points['games_played']
+    )
+
     # Sort 
     summary_df_avg_points = summary_df_avg_points.sort_values('game_win_rate', ascending=False)
 
