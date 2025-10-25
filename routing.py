@@ -6,8 +6,8 @@ from flask_bootstrap import Bootstrap
 from flask import redirect, url_for, session, request
 
 # Import routings
-# import commander
-# import cube
+# Import commander
+# Import vintage-cube
 import backend.player as player
 
 # Import dash applications
