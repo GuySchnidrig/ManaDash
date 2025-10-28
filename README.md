@@ -3,7 +3,7 @@
 ![image](https://github.com/user-attachments/assets/fea1fc56-4efb-4e40-b72a-a68ebde8936f)
 
 
-[Manadash](https://guyschnidrig.pythonanywhere.com/commander/) is a web application built with Flask that integrates interactive Dash applications for data visualization. It features user authentication, responsive design with Bootstrap, and custom backend functionality for managing player data. The project is designed to provide an engaging and intuitive interface for users to interact with various datasets and dashboards. You can take a look here: https://guyschnidrig.pythonanywhere.com/commander/
+[Manadash](https://www.manadash.app/entry_screen) is a web application built with Flask that integrates interactive Dash applications for data visualization. It features user authentication, responsive design with Bootstrap, and custom backend functionality for managing player data. The project is designed to provide an engaging and intuitive interface for users to interact with various datasets and dashboards. You can take a look here: https://guyschnidrig.pythonanywhere.com/commander/
 
 ## Features
 
