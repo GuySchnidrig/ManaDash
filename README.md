@@ -32,17 +32,7 @@
     pip install -r requirements.txt
     ```
 
-4. **Set up configuration**:
-    - Create a file named `user_credentials.json` in the root directory of the project:
-      ```json
-      {
-          "USER_CREDENTIALS": {
-              "your_username": "your_password"
-          }
-      }
-      ```
-
-5. **Run the application**:
+4. **Run the application**:
     ```bash
     python routing.py
     ```
