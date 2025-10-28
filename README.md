@@ -54,14 +54,11 @@ manadash/
 ```
 ## Usage
 
-- **Login**: Navigate to `/login` to access the login page. Use the credentials specified in the `user_credentials.json` file.
 - **Dashboards**: Access the commander and vintage dashboards from their respective routes once logged in.
-- **Player Management**: Manage player data through the `/players` endpoint.
 
 ## Deployment
 
 To deploy Manadash in a production environment, make sure to:
-- Use a secure method for handling secret keys and sensitive data.
 - Update Flask's debug mode to `False`.
 - Configure the server to run on a production-ready WSGI server such as Gunicorn or uWSGI.
 
