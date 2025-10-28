@@ -7,11 +7,9 @@
 
 ## Features
 
-- **User Authentication**: Secure login system using credentials stored in a JSON file.
 - **Dash Integration**: Interactive dashboards for "commander" and "vintage" applications.
 - **Bootstrap Styling**: Responsive, mobile-first design using Bootstrap.
 - **Modular Routing**: Clear separation of routes and functionalities for easier maintenance.
-- **Backend Player Management**: API endpoint to manage player data.
 
 ## Installation
 
