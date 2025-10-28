@@ -49,8 +49,8 @@ manadash/
 │   ├── login.html            # Login page template
 │   └── entry_screen.html     # Entry screen template
 ├── static/                   # Static files (CSS, JS, images)
-├── requirements.txt          # Python dependencies
-└── user_credentials.json     # User credentials for login (not included in repo)
+└── requirements.txt          # Python dependencies
+
 ```
 ## Usage
 
