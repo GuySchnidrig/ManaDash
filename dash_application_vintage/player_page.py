@@ -234,7 +234,7 @@ def create_player_page(player_color_map, archetype_color_map, decktype_color_map
                 ),
                 style={'overflowX': 'auto'}  # Allow overflow for the table
             ),
-            html.H3("Combined Winrates Per Season", style={'textAlign': 'left'}),
+            html.H3("Card Winrate Per Season", style={'textAlign': 'left'}),
             html.Div(
                 dash_table.DataTable(
                     id='combined-winrates-per-season',
