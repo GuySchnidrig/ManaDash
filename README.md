@@ -3,15 +3,13 @@
 ![image](https://github.com/user-attachments/assets/fea1fc56-4efb-4e40-b72a-a68ebde8936f)
 
 
-[Manadash](https://guyschnidrig.pythonanywhere.com/commander/) is a web application built with Flask that integrates interactive Dash applications for data visualization. It features user authentication, responsive design with Bootstrap, and custom backend functionality for managing player data. The project is designed to provide an engaging and intuitive interface for users to interact with various datasets and dashboards. You can take a look here: https://guyschnidrig.pythonanywhere.com/commander/
+[Manadash](https://www.manadash.app/entry_screen) is a web application built with Flask that integrates interactive Dash applications for data visualization. It features user authentication, responsive design with Bootstrap, and custom backend functionality for managing player data. The project is designed to provide an engaging and intuitive interface for users to interact with various datasets and dashboards. You can take a look here: https://www.manadash.app/
 
 ## Features
 
-- **User Authentication**: Secure login system using credentials stored in a JSON file.
 - **Dash Integration**: Interactive dashboards for "commander" and "vintage" applications.
 - **Bootstrap Styling**: Responsive, mobile-first design using Bootstrap.
 - **Modular Routing**: Clear separation of routes and functionalities for easier maintenance.
-- **Backend Player Management**: API endpoint to manage player data.
 
 ## Installation
 
@@ -32,17 +30,7 @@
     pip install -r requirements.txt
     ```
 
-4. **Set up configuration**:
-    - Create a file named `user_credentials.json` in the root directory of the project:
-      ```json
-      {
-          "USER_CREDENTIALS": {
-              "your_username": "your_password"
-          }
-      }
-      ```
-
-5. **Run the application**:
+4. **Run the application**:
     ```bash
     python routing.py
     ```
@@ -61,19 +49,16 @@ manadash/
 │   ├── login.html            # Login page template
 │   └── entry_screen.html     # Entry screen template
 ├── static/                   # Static files (CSS, JS, images)
-├── requirements.txt          # Python dependencies
-└── user_credentials.json     # User credentials for login (not included in repo)
+└── requirements.txt          # Python dependencies
+
 ```
 ## Usage
 
-- **Login**: Navigate to `/login` to access the login page. Use the credentials specified in the `user_credentials.json` file.
 - **Dashboards**: Access the commander and vintage dashboards from their respective routes once logged in.
-- **Player Management**: Manage player data through the `/players` endpoint.
 
 ## Deployment
 
 To deploy Manadash in a production environment, make sure to:
-- Use a secure method for handling secret keys and sensitive data.
 - Update Flask's debug mode to `False`.
 - Configure the server to run on a production-ready WSGI server such as Gunicorn or uWSGI.
 
