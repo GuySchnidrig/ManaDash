@@ -439,12 +439,10 @@ def wrap_labels(labels, max_len=12):
 def add_season_draft_labels(df, season_col='season_id', draft_col='draft_id'):
     """
     Adds numeric season, draft count within season, and season-draft labels to a dataframe.
-
     Parameters:
     - df (pd.DataFrame): Input dataframe containing season and draft columns.
     - season_col (str): Name of the column containing season identifiers. Default is 'season_id'.
     - draft_col (str): Name of the column containing draft identifiers. Default is 'draft_id'.
-
     Returns:
     - pd.DataFrame: DataFrame with additional columns:
         - 'season_num': numeric season extracted from season_col
@@ -458,17 +456,19 @@ def add_season_draft_labels(df, season_col='season_id', draft_col='draft_id'):
     df['season_num'] = df[season_col].astype(str).str.extract(r'(\d+)').astype(int)
     
     # Get unique draft_ids per season and assign D numbers
-    draft_counts = (
+    unique_drafts = (
         df[['season_num', draft_col]]
         .drop_duplicates()
         .sort_values(['season_num', draft_col])
-        .groupby('season_num')
-        .cumcount() + 1
+        .reset_index(drop=True)  # Reset index to ensure clean indexing
     )
+    
+    # Add cumulative count within each season
+    unique_drafts['d_in_season'] = unique_drafts.groupby('season_num').cumcount() + 1
     
     # Map back to the original dataframe
     df = df.merge(
-        df[['season_num', draft_col]].drop_duplicates().assign(d_in_season=draft_counts),
+        unique_drafts[['season_num', draft_col, 'd_in_season']],
         on=['season_num', draft_col],
         how='left'
     )
