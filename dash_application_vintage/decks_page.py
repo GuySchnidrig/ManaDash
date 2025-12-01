@@ -1,44 +1,49 @@
 # Import libraries
 import dash
-from dash import dcc
-from dash import html
+from dash import dcc, html
 import plotly.express as px
 import pandas as pd
 import dash_bootstrap_components as dbc
 from dash import dash_table
-import matplotlib.pyplot as plt
-import seaborn as sns
-import matplotlib.colors as mcolors
-
 from backend.game_data import *
-
-# Import local functions and pages
 
 def create_decks_page(player_color_map, archetype_color_map, decktype_color_map):
     decks_df = get_data('decktype_game_winrate')
     
-    # Sort the DataFrame by 'games_played' in descending order (you can adjust if necessary)
+    # Check which column name exists in the dataframe
+    decktype_column = 'deck_type' if 'deck_type' in decks_df.columns else 'decktype'
+    
+    # Sort the DataFrame by 'games_played' in descending order
     sorted_game_data_df = decks_df.sort_values(by='games_played', ascending=False)
-
-    # Prepare the columns for the DataTable
-    columns = [{'name': col, 'id': col} for col in sorted_game_data_df.columns]
-
-    return html.Div([
+    
+    return html.Div([  
         dash_table.DataTable(
-            id='table',
-            columns=columns,  # Set the columns here
-            data=sorted_game_data_df.to_dict('records'),
-            style_table={'overflowX': 'auto'},
+            id='deck-stats-table',
             sort_action='native',
             filter_action='native',
-            filter_options={'case':'insensitive'},
+            filter_options={'case': 'insensitive'},
+            columns=[
+                {'name': 'Season', 'id': 'season_id'},
+                {'name': 'Deck Type', 'id': decktype_column},
+                {'name': 'Games Won', 'id': 'games_won', 'type': 'numeric'},
+                {'name': 'Games Played', 'id': 'games_played', 'type': 'numeric'},
+                {'name': 'Game Win Rate', 'id': 'game_winrate', 'type': 'numeric', 'format': {'specifier': '.2f'}}
+            ],
+            data=sorted_game_data_df.to_dict('records'),
+            style_table={'overflowX': 'auto'},
             style_cell={
-                'textAlign': 'left',
-                'padding': '5px'
+                'whiteSpace': 'normal',
+                'height': 'auto',
+                'minWidth': '100px',
+                'maxWidth': '300px',
             },
             style_header={
-                'backgroundColor': 'rgb(230, 230, 230)',
+                'backgroundColor': 'lightgrey',
                 'fontWeight': 'bold'
             },
+            style_data={
+                'whiteSpace': 'normal',
+                'height': 'auto'
+            }
         )
     ])

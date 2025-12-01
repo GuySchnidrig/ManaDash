@@ -24,6 +24,8 @@ from dash_application_vintage.data_page import create_standings_page
 from dash_application_vintage.cards_page import create_cards_page
 from dash_application_vintage.decks_page import create_decks_page
 
+from dash_application_vintage.cards_page import create_card_scatter_plot, create_summary_stats, create_top_cards_display
+    
 from backend.game_data import *
 
 
@@ -477,7 +479,45 @@ def create_dash_application_vintage(flask_app):
                 }
             )
         ])
-    
+
+
+    @dash_app.callback(
+        [
+            Output('card-scatter-plot', 'figure'),
+            Output('card-stats-table', 'data'),
+            Output('top-cards-section', 'children')
+        ],
+        [
+            Input('season-dropdown', 'value'),
+            Input('card-search-input', 'value'),
+            Input('min-games-filter', 'value')
+        ]
+    )
+    def update_card_visualizations(selected_season, search_term, min_games):
+        # Get data
+        cards_df = get_data('card_game_winrate_per_season')
+        
+        # Filter by season
+        filtered_df = cards_df[cards_df['season_id'] == selected_season].copy()
+        
+        # Apply search filter
+        if search_term:
+            filtered_df = filtered_df[
+                filtered_df['card_name'].str.contains(search_term, case=False, na=False)
+            ]
+        
+        # Apply minimum games filter
+        if min_games and min_games > 0:
+            filtered_df = filtered_df[filtered_df['games_played'] >= min_games]
+        
+        # Sort for table
+        table_df = filtered_df.sort_values(by='games_played', ascending=False)
+        
+        # Create visualizations
+        scatter_fig = create_card_scatter_plot(filtered_df)
+        top_cards = create_top_cards_display(filtered_df)
+        
+        return scatter_fig, table_df.to_dict('records'), top_cards
     
     @dash_app.callback(
     dash.dependencies.Output('page-content', 'children'),

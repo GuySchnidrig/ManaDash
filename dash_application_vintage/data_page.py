@@ -21,61 +21,42 @@ def create_standings_page():
     # Apply labels
     sorted_game_data_df = add_season_draft_labels(sorted_game_data_df)
 
-    # List of columns to drop
-    drop_cols = [
-        "season_id",
-        "player_id",
-        "byes",
-        "draft_id",
-        "season_num",
-        "d_in_season",
-        "matches_played"
-    ]
-
-    # Drop them
-    sorted_game_data_df = sorted_game_data_df.drop(columns=drop_cols)
-
-    # Numeric cols   
-    numeric_cols = [
-    
-    "match_points",
-    "standing",
-    "game_points",
-    "games_played",
-    "MWP",
-    "OMP",
-    "GWP",
-    "OGP",
-    ]
-
-    # Force numeric conversion again to be sure
-    for col in numeric_cols:
-        sorted_game_data_df[col] = pd.to_numeric(sorted_game_data_df[col], errors="coerce")
-
     # Reorder with col first
     sorted_game_data_df = sorted_game_data_df[["season_draft_label"] + [c for c in sorted_game_data_df.columns if c != "season_draft_label"]]
 
-    # Prepare the columns for the DataTable
-    columns = [{'name': col, 'id': col} for col in sorted_game_data_df.columns]
-
-
-    
     return html.Div([
         dash_table.DataTable(
-            id='table',
-            columns=columns,  # Set the columns here
-            data=sorted_game_data_df.to_dict('records'),
-            style_table={'overflowX': 'auto'},
+            id='full-game-stats-table',
             sort_action='native',
             filter_action='native',
-            filter_options={'case':'insensitive'},
+            filter_options={'case': 'insensitive'},
+            columns=[
+                {'name': 'Draft ID', 'id': 'season_draft_label'},
+                {'name': 'Player', 'id': 'player'},
+                {'name': 'Match Points', 'id': 'match_points', 'type': 'numeric'},
+                {'name': 'Standing', 'id': 'standing', 'type': 'numeric'},
+                {'name': 'Game Points', 'id': 'game_points', 'type': 'numeric'},
+                {'name': 'Games Played', 'id': 'games_played', 'type': 'numeric'},
+                {'name': 'Match Win % (MWP)', 'id': 'MWP', 'type': 'numeric', 'format': {'specifier': '.2f'}},
+                {'name': 'Opp Match Win % (OMP)', 'id': 'OMP', 'type': 'numeric', 'format': {'specifier': '.2f'}},
+                {'name': 'Game Win % (GWP)', 'id': 'GWP', 'type': 'numeric', 'format': {'specifier': '.2f'}},
+                {'name': 'Opp Game Win % (OGP)', 'id': 'OGP', 'type': 'numeric', 'format': {'specifier': '.2f'}}
+            ],
+            data=sorted_game_data_df.to_dict('records'),
+            style_table={'overflowX': 'auto'},
             style_cell={
-                'textAlign': 'left',
-                'padding': '5px'
+                'whiteSpace': 'normal',
+                'height': 'auto',
+                'minWidth': '100px',
+                'maxWidth': '300px',
             },
             style_header={
-                'backgroundColor': 'rgb(230, 230, 230)',
+                'backgroundColor': 'lightgrey',
                 'fontWeight': 'bold'
             },
+            style_data={
+                'whiteSpace': 'normal',
+                'height': 'auto'
+            }
         )
     ])
