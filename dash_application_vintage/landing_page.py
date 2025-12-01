@@ -18,6 +18,9 @@ def create_landing_page(player_color_map, archetype_color_map):
     archetype_game_winrate = get_data('archetype_game_winrate')
     player_game_and_match_winrate = get_data('player_game_and_match_winrate')
     
+    archetype_game_winrate = archetype_game_winrate[archetype_game_winrate['season_id'] == 'Season-All']
+    player_game_and_match_winrate = player_game_and_match_winrate[player_game_and_match_winrate['season_id'] == 'Season-All']
+
     # Drafts plot
     # Create summary DataFrame for Drafts plot
     summary_df_bar = vintage_standings_df.groupby(['player']).agg(Played_Games=('draft_id', 'count')).reset_index()

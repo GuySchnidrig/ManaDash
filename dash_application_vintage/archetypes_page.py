@@ -20,9 +20,15 @@ def create_archetypes_page(player_color_map, archetype_color_map, decktype_color
     
     archetype_game_winrate = get_data('archetype_game_winrate')
     decktype_game_winrate = get_data('decktype_game_winrate')
-
+    
     archetype_match_winrate = get_data('archetype_match_winrate')
     decktype_match_winrate = get_data('decktype_match_winrate')
+
+    # Filter for all Seasons
+    archetype_game_winrate = archetype_game_winrate[archetype_game_winrate['season_id'] == 'Season-All']
+    decktype_game_winrate = decktype_game_winrate[decktype_game_winrate['season_id'] == 'Season-All']
+    archetype_match_winrate = archetype_match_winrate[archetype_match_winrate['season_id'] == 'Season-All']
+    decktype_match_winrate = decktype_match_winrate[decktype_match_winrate['season_id'] == 'Season-All']
 
     # Archtypes plot
     summary_df_bar = decks_with_standings.groupby(['archetype']).agg(arche_types_count=('deck_id', 'nunique')).reset_index()

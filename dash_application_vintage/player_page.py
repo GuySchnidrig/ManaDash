@@ -14,8 +14,7 @@ def create_player_page(player_color_map, archetype_color_map, decktype_color_map
         for _, row in players_df.iterrows()
     ]
     # Set default value to the first player's ID if available
-    # default_player_id = player_options[0]['value'] if player_options else None
-    default_player_id = None
+    default_player_id = player_options[0]['value'] if player_options else None
     
     # Initial empty figure
     archetype_fig = px.bar(title='Archetypes')

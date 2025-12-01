@@ -240,8 +240,9 @@ def create_dash_application_vintage(flask_app):
         )
                 
         
-        # Player Stats
-        filtered_stats_summary = (
+        
+        # Player Stats - Individual Seasons
+        filtered_stats_by_season = (
             filtered_stats
             .assign(is_win=lambda df: df['standing'] == 1)
             .groupby(['season_id', 'player_id', 'player'], as_index=False)
@@ -250,8 +251,8 @@ def create_dash_application_vintage(flask_app):
                 archetype_count=('archetype', 'size'),
                 total_wins=('is_win', 'sum'),
                 total_points=('match_points', 'sum'),
-                most_common_archetype=('archetype', lambda x: x.value_counts().idxmax()),
-                most_common_decktype=('decktype', lambda x: x.value_counts().idxmax()),
+                most_common_archetype=('archetype', lambda x: x.value_counts().idxmax() if len(x) > 0 else ''),
+                most_common_decktype=('decktype', lambda x: x.value_counts().idxmax() if len(x) > 0 else ''),
                 average_omp=('OMP', 'mean'),
                 average_gwp=('GWP', 'mean'),
                 average_ogp=('OGP', 'mean'),
@@ -259,47 +260,81 @@ def create_dash_application_vintage(flask_app):
             .assign(
                 avg_points_per_draft=lambda df: df['total_points'] / df['games_played'] 
             )
-            .round({
-                'average_omp': 2,
-                'average_gwp': 2,
-                'average_ogp': 2,
-                'avg_points_per_draft': 2
-
-            })
-            .sort_values(by='games_played', ascending=False)
         )
+
+        # Player Stats - "Season-All" Aggregate
+        filtered_stats_all = (
+            filtered_stats
+            .assign(is_win=lambda df: df['standing'] == 1)
+            .groupby(['player_id', 'player'], as_index=False)
+            .agg(
+                games_played=('draft_id', 'nunique'), 
+                archetype_count=('archetype', 'size'),
+                total_wins=('is_win', 'sum'),
+                total_points=('match_points', 'sum'),
+                most_common_archetype=('archetype', lambda x: x.value_counts().idxmax() if len(x) > 0 else ''),
+                most_common_decktype=('decktype', lambda x: x.value_counts().idxmax() if len(x) > 0 else ''),
+                average_omp=('OMP', 'mean'),
+                average_gwp=('GWP', 'mean'),
+                average_ogp=('OGP', 'mean'),
+            )
+            .assign(
+                season_id='Season-All',
+                avg_points_per_draft=lambda df: df['total_points'] / df['games_played'] 
+            )
+        )
+
+        # Combine both: Season-All first, then individual seasons
+        filtered_stats_summary = pd.concat([filtered_stats_all, filtered_stats_by_season], ignore_index=True)
+
+        # Round numeric columns
+        filtered_stats_summary = filtered_stats_summary.round({
+            'average_omp': 2,
+            'average_gwp': 2,
+            'average_ogp': 2,
+            'avg_points_per_draft': 2
+        })
+
+        # Sort: Season-All first, then by games_played descending
+        filtered_stats_summary['sort_key'] = filtered_stats_summary['season_id'].apply(
+            lambda x: 0 if x == 'Season-All' else 1
+        )
+        filtered_stats_summary = filtered_stats_summary.sort_values(
+            by=['player_id', 'sort_key', 'games_played'],
+            ascending=[True, True, False]
+        ).drop('sort_key', axis=1)
 
         # vs_stats
         vs_stats_summary = vs_stats.round({
-                'game_win_rate_vs': 2,
-                'match_win_rate_vs': 2,
-            })
-        
+            'game_win_rate_vs': 2,
+            'match_win_rate_vs': 2,
+        })
+
         # most_played_card
         most_played_card_summary = most_played_card
 
         # player archetype winrates
         player_archetype_winrates_summary = player_archetype_winrates.round({
-                'game_win_rate': 2,
-                'match_win_rate': 2,
-            })
+            'game_win_rate': 2,
+            'match_win_rate': 2,
+        })
 
         # player_decktype_winrates
         player_decktype_winrates_summary = player_decktype_winrates.round({
-                'game_win_rate': 2,
-                'match_win_rate': 2,
-            })
+            'game_win_rate': 2,
+            'match_win_rate': 2,
+        })
 
-        # player_decktype_winrates
+        # combined_winrates_per_season
         combined_winrates_per_season_summary = combined_winrates_per_season.round({
-                'game_win_rate': 2,
-                'match_win_rate': 2,
-            })
+            'game_win_rate': 2,
+            'match_win_rate': 2,
+        })
 
-        # dicts
+        # Convert all to dict for the tables
         filtered_stats_summary = filtered_stats_summary.to_dict('records')
         vs_stats_summary = vs_stats_summary.to_dict('records')
-        most_played_card_summary =  most_played_card_summary.to_dict('records')
+        most_played_card_summary = most_played_card_summary.to_dict('records')
         player_archetype_winrates_summary = player_archetype_winrates_summary.to_dict('records')
         player_decktype_winrates_summary = player_decktype_winrates_summary.to_dict('records')
         combined_winrates_per_season_summary = combined_winrates_per_season_summary.to_dict('records')
