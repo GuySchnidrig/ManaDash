@@ -22,10 +22,10 @@ def create_cards_page(player_color_map, archetype_color_map, decktype_color_map)
                 dcc.Dropdown(
                     id='season-dropdown',
                     options=[
-                        {'label': f"Season{s}" if s != '-All' else 'Season-All', 'value': s}
+                        {'label': s, 'value': s}
                         for s in sorted(cards_df['season_id'].unique())
                     ],
-                    value=sorted(cards_df['season_id'].unique())[0],
+                    value='Season-All',   # <-- default
                     clearable=False,
                     style={'width': '200px'}
                 ),
