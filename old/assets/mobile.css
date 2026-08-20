@@ -1,6 +1,0 @@
-/* mobile.css */
-@media (max-width: 1168px) {
-    .responsive-grid {
-        grid-template-columns: 1fr !important;
-    }
-}
