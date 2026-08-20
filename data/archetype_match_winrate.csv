@@ -1,0 +1,27 @@
+season_id,archetype,matches_won,matches_played,match_win_rate
+Season-4,Aggro,54,108,0.5
+Season-4,Aggro-Combo,15,28,0.5357142857142857
+Season-4,Aggro-Control (Tempo),15,32,0.46875
+Season-4,Combo,66,152,0.4342105263157895
+Season-4,Combo-Control,29,52,0.5576923076923077
+Season-4,Control,51,108,0.4722222222222222
+Season-4,Control-Aggro (Midrange),16,44,0.36363636363636365
+Season-5,Aggro,69,132,0.5227272727272727
+Season-5,Aggro-Combo,12,32,0.375
+Season-5,Aggro-Control (Tempo),12,24,0.5
+Season-5,Combo,50,116,0.43103448275862066
+Season-5,Combo-Control,14,28,0.5
+Season-5,Control,68,148,0.4594594594594595
+Season-5,Control-Aggro (Midrange),28,68,0.4117647058823529
+Season-6,Aggro,6,8,0.75
+Season-6,Aggro-Combo,3,4,0.75
+Season-6,Combo,3,12,0.25
+Season-6,Combo-Control,2,4,0.5
+Season-6,Control,2,4,0.5
+Season-All,Aggro,129,248,0.5201612903225806
+Season-All,Aggro-Combo,30,64,0.46875
+Season-All,Aggro-Control (Tempo),27,56,0.48214285714285715
+Season-All,Combo,119,280,0.425
+Season-All,Combo-Control,45,84,0.5357142857142857
+Season-All,Control,121,260,0.4653846153846154
+Season-All,Control-Aggro (Midrange),44,112,0.39285714285714285

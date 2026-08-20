@@ -1,0 +1,7 @@
+---
+title: "Archetypes"
+format: html
+jupyter: python3
+---
+
+archetypes

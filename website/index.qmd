@@ -1,0 +1,27 @@
+---
+format: html
+jupyter: python3
+---
+
+# Welcome to ManaDash
+
+This page tests that **Quarto + Python** are working.
+
+## Python test
+
+```{python}
+import sys
+import numpy as np
+import pandas as pd
+
+print(f"Python version: {sys.version.split()[0]}")
+print(f"NumPy version: {np.__version__}")
+print(f"Pandas version: {pd.__version__}")
+
+df = pd.DataFrame({
+    "Player": ["Alice", "Bob", "Charlie"],
+    "Elo": [1520, 1480, 1410],
+})
+
+print(df)
+```
