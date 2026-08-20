@@ -1,27 +1,138 @@
 ---
-format: html
-jupyter: python3
+title: "Home"
+format: 
+    dashboard
+
 ---
 
-# Welcome to ManaDash
-
-This page tests that **Quarto + Python** are working.
-
-## Python test
+## Home
 
 ```{python}
-import sys
-import numpy as np
-import pandas as pd
+#| echo: false
+#| output: false
 
-print(f"Python version: {sys.version.split()[0]}")
-print(f"NumPy version: {np.__version__}")
-print(f"Pandas version: {pd.__version__}")
+import sys, os
+import plotly.express as px
+import plotly.io as pio
 
-df = pd.DataFrame({
-    "Player": ["Alice", "Bob", "Charlie"],
-    "Elo": [1520, 1480, 1410],
-})
+pio.renderers.default = "notebook_connected"   # or whatever Quarto picks by default
+pio.renderers[pio.renderers.default].config = {'displayModeBar': False}
 
-print(df)
+sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "..")))
+from src.backend.backend_functions import *
+
+initialize_data()
+player_color_map, archetype_color_map, decktype_color_map = get_color_maps()
+
+vintage_standings_df = get_vintage_standings()
+archetype_game_winrate = get_data('archetype_game_winrate')
+player_game_and_match_winrate = get_data('player_game_and_match_winrate')
+
+archetype_game_winrate = archetype_game_winrate[archetype_game_winrate['season_id'] == 'Season-All']
+player_game_and_match_winrate = player_game_and_match_winrate[player_game_and_match_winrate['season_id'] == 'Season-All']
+
+total_drafts = vintage_standings_df['draft_id'].nunique()
+total_players = vintage_standings_df['player'].nunique()
+total_games = vintage_standings_df['games_played'].sum() if 'games_played' in vintage_standings_df else len(vintage_standings_df)
+
+
+```
+
+## Row {height=20%}
+
+```{python}
+#| content: valuebox
+#| title: "Total Drafts"
+dict(icon="dice-6", color="primary", value=int(total_drafts))
+```
+
+```{python}
+#| content: valuebox
+#| title: "Total Players"
+dict(icon="people-fill", color="info", value=int(total_players))
+```
+
+```{python}
+#| content: valuebox
+#| title: "Games Recorded"
+dict(icon="controller", color="success", value=int(total_games))
+```
+
+## Row {height=80%}
+
+### Column {width=50%}
+
+```{python}
+#| title: "Drafts Attended"
+summary_df_bar = (
+    vintage_standings_df.groupby(['player'])
+    .agg(Played_Games=('draft_id', 'count'))
+    .reset_index()
+    .sort_values('Played_Games', ascending=False)
+    .head(15)
+)
+
+draftbar = px.bar(
+    summary_df_bar, x='player', y='Played_Games', color='player',
+    color_discrete_map=player_color_map, title=None,
+    labels={'Played_Games': 'Count', 'player': ''},
+)
+draftbar.update_layout(plot_bgcolor='white', showlegend=False)
+
+```
+
+```{python}
+#| title: "Drafts Won"
+game_data_df_pie = vintage_standings_df[vintage_standings_df['standing'] == 1]
+summary_df_pie = game_data_df_pie.groupby(['player']).agg(games_won=('draft_id', 'count')).reset_index()
+
+piewon = px.pie(
+    summary_df_pie, names='player', values='games_won', color='player',
+    color_discrete_map=player_color_map, title=None,
+)
+
+piewon.update_layout(
+    plot_bgcolor='white', paper_bgcolor='white',
+    showlegend=False
+)
+```
+
+### Column {width=50%}
+
+```{python}
+#| title: "Archetype Game Win Rate"
+summary_df_bar = (
+    archetype_game_winrate.groupby('archetype', as_index=False)
+    .agg({'games_played': 'sum', 'games_won': 'sum'})
+)
+summary_df_bar['game_win_rate'] = summary_df_bar['games_won'] / summary_df_bar['games_played']
+summary_df_bar = summary_df_bar.sort_values('game_win_rate', ascending=False)
+
+archetype_fig = px.bar(
+    summary_df_bar, x='archetype', y='game_win_rate', color='archetype',
+    color_discrete_map=archetype_color_map, title=None,
+    labels={'game_win_rate': 'Game Win Rate', 'archetype': ''},
+)
+archetype_fig = archetype_fig.update_layout(plot_bgcolor='white', showlegend=False)
+archetype_fig = archetype_fig.update_xaxes(tickangle=0, ticktext=wrap_labels(summary_df_bar['archetype']), tickvals=summary_df_bar['archetype'])
+archetype_fig = archetype_fig.update_yaxes(range=[0.3, summary_df_bar['game_win_rate'].max()], title='Game Win Rate')
+archetype_fig
+```
+
+```{python}
+#| title: "Game Win Rate by Player"
+summary_df_avg_points = (
+    player_game_and_match_winrate.groupby('player', as_index=False)
+    .agg({'games_played': 'sum', 'games_won': 'sum'})
+)
+summary_df_avg_points['game_win_rate'] = summary_df_avg_points['games_won'] / summary_df_avg_points['games_played']
+summary_df_avg_points = summary_df_avg_points.sort_values('game_win_rate', ascending=False).head(15)
+
+avg_points_fig = px.bar(
+    summary_df_avg_points, x='player', y='game_win_rate', color='player',
+    color_discrete_map=player_color_map, title=None,
+    labels={'game_win_rate': 'Game Win Rate', 'player': ''}
+)
+avg_points_fig = avg_points_fig.update_layout(plot_bgcolor='white', showlegend=False, yaxis=dict(title='Game Win Rate'))
+avg_points_fig
 ```

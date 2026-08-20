@@ -32,7 +32,7 @@ website:
         text: Standings
     right:
       - icon: github
-        href: https://github.com/  # replace with your repo URL
+        href: https://github.com/GuySchnidrig/ManaDash/ 
         aria-label: GitHub
 
   page-footer:

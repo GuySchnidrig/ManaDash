@@ -1,5 +1,7 @@
 # ManaDash
 
+
+# Linux
 # install uv
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
@@ -14,3 +16,18 @@ source .venv/bin/activate
 cd website
 quarto preview
 
+
+# Windows
+# install uv (PowerShell)
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# install Quarto
+$env:Path += ";$env:USERPROFILE\.local\bin"
+$env:Path += ";C:\Program Files\Quarto\bin"
+
+# setup
+cd ManaDash
+uv sync
+.venv\Scripts\activate
+cd website
+quarto preview
