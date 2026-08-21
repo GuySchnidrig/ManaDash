@@ -1,7 +1,229 @@
 ---
 title: "Player ELO"
-format: html
-jupyter: python3
+format:
+  dashboard:
+    include-before-body:
+      text: |
+        <style>
+            #quarto-dashboard-header { display: none }
+            .js-plotly-plot, .plotly-graph-div { width: 200% !important; }
+        </style>
+engine: jupyter
+execute:
+  echo: false
 ---
 
-Player ELO
+```{python}
+#| output: false
+#| echo: false
+import json
+from pathlib import Path
+
+import pandas as pd
+import plotly.express as px
+
+import sys, os
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "..")))
+from src.backend.backend_functions import *
+
+initialize_data()
+player_color_map, archetype_color_map, decktype_color_map = get_color_maps()
+
+INITIAL_PLAYERS = [
+    "Dimlas", "Andrin", "Sili", "Manuel", "Lukas Stalder",
+    "Tommy", "Noe", "Guy", "Ivo"
+]
+
+player_elo_df = get_player_elo()
+
+# Latest elo entry per player/draft
+player_elo_df = (
+    player_elo_df
+    .sort_values(["player", "draft_id"])
+    .groupby(["player", "draft_id"], as_index=False)
+    .last()
+)
+
+# Remove Bye and NA
+player_elo_df = player_elo_df[
+    player_elo_df["player"].notna()
+    & (player_elo_df["player"] != "")
+    & (player_elo_df["player"] != "Missing Player")
+]
+
+player_elo_df = player_elo_df.sort_values(["season_id", "draft_id"])
+player_elo_df = add_season_draft_labels(player_elo_df)
+```
+
+## {.sidebar}
+
+```{python}
+#| echo: false
+import html
+from IPython.display import HTML, display
+
+players = sorted(player_elo_df["player"].unique())
+initial = [p for p in INITIAL_PLAYERS if p in players]
+
+items = "".join(
+    '<label class="pf-item" data-name="{low}">'
+    '<input type="checkbox" class="pf-cb" value="{esc}"{chk}>'
+    '<span class="pf-dot" style="display:inline-block;width:.7rem;height:.7rem;'
+    'border-radius:50%;flex:none;background:{col}"></span>'
+    '<span class="pf-name">{esc}</span></label>'.format(
+        low=html.escape(p.lower()),
+        esc=html.escape(p),
+        chk=" checked" if p in initial else "",
+        col=player_color_map.get(p, "#999999"),
+    )
+    for p in players
+)
+
+display(HTML(
+    '<div id="pf">'
+    '<input type="text" id="pf-search" placeholder="Search player">'
+    '<div class="pf-btns">'
+    '<button type="button" id="pf-all">All</button>'
+    '<button type="button" id="pf-none">None</button>'
+    '<button type="button" id="pf-reset">Reset</button>'
+    '</div>'
+    '<div id="pf-list">' + items + '</div>'
+    '<script type="application/json" id="pf-initial">'
+    + json.dumps(initial) +
+    '</script>'
+    '</div>'
+))
+```
+
+
+```{=html}
+<style>
+#pf { font-size: .85rem; padding-right: .25rem; }
+
+/* leave room for the sidebar collapse arrow on the first row */
+#pf-search {
+  width: calc(100% - 2.0rem);
+  margin-bottom: .4rem;
+  padding: .25rem .4rem;
+  box-sizing: border-box;
+}
+#pf-search:focus { outline-offset: -1px; }   /* focus ring was being clipped */
+
+#pf .pf-btns { display: flex; gap: .25rem; margin-bottom: .5rem; }
+#pf .pf-btns button { flex: 1; font-size: .75rem; padding: .2rem 0; cursor: pointer; }
+
+#pf-list { max-height: 70vh; overflow-y: auto; padding-right: .35rem; }
+#pf .pf-item { display: flex; align-items: center; gap: .4rem; padding: .12rem 0; cursor: pointer; }
+#pf .pf-item.pf-hidden { display: none; }
+#pf .pf-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+</style>
+<script>
+(function () {
+  function ready() {
+    const root = document.getElementById("pf");
+    const el = document.querySelector(".js-plotly-plot");
+    if (!root || !el || !el.data || !window.Plotly) return false;
+    if (root.dataset.bound) return true;
+    root.dataset.bound = "1";
+
+    const INITIAL = new Set(
+      JSON.parse(document.getElementById("pf-initial").textContent)
+    );
+
+    function apply() {
+      const on = new Set(
+        Array.from(root.querySelectorAll(".pf-cb:checked")).map(c => c.value)
+      );
+      Plotly.restyle(
+        el,
+        { visible: el.data.map(t => (on.has(t.name) ? true : "legendonly")) },
+        el.data.map((_, i) => i)
+      );
+    }
+
+    function setAll(fn) {
+      root.querySelectorAll(".pf-cb").forEach(c => { c.checked = fn(c.value); });
+      apply();
+    }
+
+    root.addEventListener("change", e => {
+      if (e.target.classList.contains("pf-cb")) apply();
+    });
+    root.querySelector("#pf-all").onclick   = () => setAll(() => true);
+    root.querySelector("#pf-none").onclick  = () => setAll(() => false);
+    root.querySelector("#pf-reset").onclick = () => setAll(v => INITIAL.has(v));
+
+    root.querySelector("#pf-search").addEventListener("input", e => {
+      const q = e.target.value.toLowerCase();
+      root.querySelectorAll(".pf-item").forEach(it => {
+        it.classList.toggle("pf-hidden", q && !it.dataset.name.includes(q));
+      });
+    });
+
+    apply();
+    return true;
+  }
+
+  const t = setInterval(() => { if (ready()) clearInterval(t); }, 150);
+  setTimeout(() => clearInterval(t), 20000);
+})();
+</script>
+```
+
+
+## Column
+
+```{python}
+#| label: fig-player-elo
+#| fig-cap: "Player ELO over time. Click legend entries to toggle players."
+
+fig = px.line(
+    player_elo_df,
+    x="season_draft_label",
+    y="elo",
+    color="player",
+    color_discrete_map=player_color_map,
+    labels={"elo": "ELO Rating", "season_draft_label": "Draft", "player": "Player"},
+    line_shape="spline",
+    category_orders={
+        "season_draft_label": list(player_elo_df["season_draft_label"].unique())
+    },
+)
+
+for trace in fig.data:
+    trace.visible = True if trace.name in INITIAL_PLAYERS else "legendonly"
+
+_ = fig.add_hline(
+    y=1000,
+    line_dash="dot",
+    line_color="red",
+    line_width=3,
+    annotation_text="ELO = 1000",
+    annotation_position="top right",
+    annotation_xshift=-25,
+)
+
+for y in (1200, 1100, 900, 800):
+    _ = fig.add_hline(
+        y=y,
+        line_dash="dot",
+        line_color="rgba(0,0,0,0.2)",
+        line_width=2,
+        annotation_text=f"ELO = {y}",
+        annotation_position="top right",
+        annotation_xshift=-25,
+    )
+
+_ = fig.update_layout(
+    autosize=True,
+    showlegend=False,          
+    xaxis=dict(tickangle=0),
+    plot_bgcolor="white")
+
+_ = fig.update_layout(modebar_remove=["toImage", "zoom", "pan", "select", "lasso", "autoScale"])
+
+
+
+fig.show(config={"responsive": True})
+```

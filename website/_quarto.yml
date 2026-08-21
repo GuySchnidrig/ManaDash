@@ -39,10 +39,7 @@ website:
     center: "ManaDash — Vintage Cube Analysis"
 
 format:
-  html:
+  dashboard:
     theme:
       light: sandstone
       dark: sandstone
-    toc: false
-    grid:
-      body-width: 1100px

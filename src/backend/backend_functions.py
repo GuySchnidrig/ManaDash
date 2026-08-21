@@ -135,7 +135,7 @@ def get_decks_with_standings():
         on=['draft_id', 'player', 'player_id', 'season_id'],
         how='inner'
     ).merge(
-        drafts_df[['draft_id', 'season_id', 'timestamp']],
+        drafts_df[['draft_id', 'timestamp']],  # dropped season_id — already present from standings merge
         on='draft_id',
         how='left'
     )

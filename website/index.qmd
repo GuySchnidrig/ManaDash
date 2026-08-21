@@ -1,22 +1,24 @@
 ---
 title: "Home"
-format: 
-    dashboard
-
+format:
+  dashboard:
+    include-before-body:
+      text: |
+        <style>#quarto-dashboard-header { display: none }</style>
+engine: jupyter
+execute:
+  echo: false
 ---
 
-## Home
+
+## {.sidebar width="260px"}
 
 ```{python}
-#| echo: false
 #| output: false
+#| echo: false
 
 import sys, os
-import plotly.express as px
-import plotly.io as pio
-
-pio.renderers.default = "notebook_connected"   # or whatever Quarto picks by default
-pio.renderers[pio.renderers.default].config = {'displayModeBar': False}
+import pandas as pd
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "..")))
 from src.backend.backend_functions import *
@@ -25,114 +27,183 @@ initialize_data()
 player_color_map, archetype_color_map, decktype_color_map = get_color_maps()
 
 vintage_standings_df = get_vintage_standings()
-archetype_game_winrate = get_data('archetype_game_winrate')
-player_game_and_match_winrate = get_data('player_game_and_match_winrate')
+archetype_game_winrate = get_data("archetype_game_winrate")
+player_game_and_match_winrate = get_data("player_game_and_match_winrate")
 
-archetype_game_winrate = archetype_game_winrate[archetype_game_winrate['season_id'] == 'Season-All']
-player_game_and_match_winrate = player_game_and_match_winrate[player_game_and_match_winrate['season_id'] == 'Season-All']
-
-total_drafts = vintage_standings_df['draft_id'].nunique()
-total_players = vintage_standings_df['player'].nunique()
-total_games = vintage_standings_df['games_played'].sum() if 'games_played' in vintage_standings_df else len(vintage_standings_df)
-
-
-```
-
-## Row {height=20%}
-
-```{python}
-#| content: valuebox
-#| title: "Total Drafts"
-dict(icon="dice-6", color="primary", value=int(total_drafts))
-```
-
-```{python}
-#| content: valuebox
-#| title: "Total Players"
-dict(icon="people-fill", color="info", value=int(total_players))
-```
-
-```{python}
-#| content: valuebox
-#| title: "Games Recorded"
-dict(icon="controller", color="success", value=int(total_games))
-```
-
-## Row {height=80%}
-
-### Column {width=50%}
-
-```{python}
-#| title: "Drafts Attended"
-summary_df_bar = (
-    vintage_standings_df.groupby(['player'])
-    .agg(Played_Games=('draft_id', 'count'))
-    .reset_index()
-    .sort_values('Played_Games', ascending=False)
-    .head(15)
+# The winrate tables ship a precomputed 'Season-All' row; the standings table
+# does not, so duplicate every row under that label to get the same behaviour.
+standings = pd.concat(
+    [vintage_standings_df, vintage_standings_df.assign(season_id="Season-All")],
+    ignore_index=True,
 )
 
-draftbar = px.bar(
-    summary_df_bar, x='player', y='Played_Games', color='player',
-    color_discrete_map=player_color_map, title=None,
-    labels={'Played_Games': 'Count', 'player': ''},
-)
-draftbar.update_layout(plot_bgcolor='white', showlegend=False)
-
-```
-
-```{python}
-#| title: "Drafts Won"
-game_data_df_pie = vintage_standings_df[vintage_standings_df['standing'] == 1]
-summary_df_pie = game_data_df_pie.groupby(['player']).agg(games_won=('draft_id', 'count')).reset_index()
-
-piewon = px.pie(
-    summary_df_pie, names='player', values='games_won', color='player',
-    color_discrete_map=player_color_map, title=None,
+totals_by_season = standings.groupby("season_id", as_index=False).agg(
+    total_drafts=("draft_id", "nunique"),
+    total_players=("player", "nunique"),
+    total_games=("games_played", "sum"),
 )
 
-piewon.update_layout(
-    plot_bgcolor='white', paper_bgcolor='white',
-    showlegend=False
+drafts_attended_by_season = standings.groupby(
+    ["season_id", "player"], as_index=False
+).agg(drafts_played=("draft_id", "count"))
+
+drafts_won_by_season = (
+    standings[standings["standing"] == 1]
+    .groupby(["season_id", "player"], as_index=False)
+    .agg(drafts_won=("draft_id", "count"))
+)
+
+
+def winrate_by_season(df, category, played, won, rate_col):
+    """Aggregate wins/plays per (season, category) and derive a win rate."""
+    out = df.groupby(["season_id", category], as_index=False).agg(
+        **{played: (played, "sum"), won: (won, "sum")}
+    )
+    out[rate_col] = out[won] / out[played]
+    return out
+
+
+archetype_winrate_by_season = winrate_by_season(
+    archetype_game_winrate, "archetype", "games_played", "games_won", "game_win_rate"
+)
+player_winrate_by_season = winrate_by_season(
+    player_game_and_match_winrate, "player", "games_played", "games_won", "game_win_rate"
+)
+
+# 'Season-All' is the aggregate view; pin it first.
+seasons = sorted(standings["season_id"].unique())
+if "Season-All" in seasons:
+    seasons.remove("Season-All")
+    seasons.insert(0, "Season-All")
+
+ojs_define(
+    seasons=seasons,
+    totals_by_season=totals_by_season,
+    drafts_attended_by_season=drafts_attended_by_season,
+    drafts_won_by_season=drafts_won_by_season,
+    archetype_winrate_by_season=archetype_winrate_by_season,
+    player_winrate_by_season=player_winrate_by_season,
+    player_color_map=player_color_map,
+    archetype_color_map=archetype_color_map,
 )
 ```
 
-### Column {width=50%}
-
-```{python}
-#| title: "Archetype Game Win Rate"
-summary_df_bar = (
-    archetype_game_winrate.groupby('archetype', as_index=False)
-    .agg({'games_played': 'sum', 'games_won': 'sum'})
-)
-summary_df_bar['game_win_rate'] = summary_df_bar['games_won'] / summary_df_bar['games_played']
-summary_df_bar = summary_df_bar.sort_values('game_win_rate', ascending=False)
-
-archetype_fig = px.bar(
-    summary_df_bar, x='archetype', y='game_win_rate', color='archetype',
-    color_discrete_map=archetype_color_map, title=None,
-    labels={'game_win_rate': 'Game Win Rate', 'archetype': ''},
-)
-archetype_fig = archetype_fig.update_layout(plot_bgcolor='white', showlegend=False)
-archetype_fig = archetype_fig.update_xaxes(tickangle=0, ticktext=wrap_labels(summary_df_bar['archetype']), tickvals=summary_df_bar['archetype'])
-archetype_fig = archetype_fig.update_yaxes(range=[0.3, summary_df_bar['game_win_rate'].max()], title='Game Win Rate')
-archetype_fig
+```{ojs}
+//| panel: input
+viewof season = Inputs.select(seasons, {
+  label: "Season",
+  value: seasons[0]
+})
 ```
 
-```{python}
-#| title: "Game Win Rate by Player"
-summary_df_avg_points = (
-    player_game_and_match_winrate.groupby('player', as_index=False)
-    .agg({'games_played': 'sum', 'games_won': 'sum'})
-)
-summary_df_avg_points['game_win_rate'] = summary_df_avg_points['games_won'] / summary_df_avg_points['games_played']
-summary_df_avg_points = summary_df_avg_points.sort_values('game_win_rate', ascending=False).head(15)
 
-avg_points_fig = px.bar(
-    summary_df_avg_points, x='player', y='game_win_rate', color='player',
-    color_discrete_map=player_color_map, title=None,
-    labels={'game_win_rate': 'Game Win Rate', 'player': ''}
-)
-avg_points_fig = avg_points_fig.update_layout(plot_bgcolor='white', showlegend=False, yaxis=dict(title='Game Win Rate'))
-avg_points_fig
+
+```{ojs}
+//| output: false
+totalsData = transpose(totals_by_season)
+draftsAttendedData = transpose(drafts_attended_by_season)
+draftsWonData = transpose(drafts_won_by_season)
+archetypeWinData = transpose(archetype_winrate_by_season)
+playerWinData = transpose(player_winrate_by_season)
+
+totals = totalsData.find(d => d.season_id === season) ?? {}
+```
+
+
+```{ojs}
+//| output: false
+// Filters to the selected season, sorts descending by `y`, optionally keeps the
+// top `top` rows, and draws a bar chart. `rule` adds the 50% reference line.
+//| output: false
+function barChart(data, {x, y, yLabel, colors, top, rule = false, yMin} = {}) {
+  const rows = data
+    .filter(d => d.season_id === season)
+    .sort((a, b) => d3.descending(a[y], b[y]))
+    .slice(0, top ?? Infinity);
+
+  return Plot.plot({
+    width,
+    height: 700,
+    marginBottom: 110,
+    marginLeft: 70,
+    style: {fontSize: "28px"},
+    x: {
+      label: null,
+      domain: rows.map(d => d[x]),
+      ticks: rows.map(d => d[x]),
+      lineWidth: 6,
+      tickPadding: 8
+    },
+    y: {
+      label: yLabel,
+      labelArrow: "none",
+      labelAnchor: "center",
+      labelOffset: 70,
+      ticks: 5,
+      grid: true,
+      domain: yMin === undefined ? undefined : [yMin, d3.max(rows, d => d[y])]
+    },
+    color: {domain: Object.keys(colors), range: Object.values(colors)},
+    marks: [
+      Plot.barY(rows, {x, y, fill: x, tip: true}),
+      rule ? Plot.ruleY([0.5], {
+        stroke: "gray",
+        strokeDasharray: "4,4",
+        strokeOpacity: 0.5
+      }) : null
+    ]
+  });
+}
+```
+
+
+## stop
+
+### Column {height="50%"}
+
+```{ojs}
+//| title: "Drafts Attended"
+barChart(draftsAttendedData, {
+  x: "player",
+  y: "drafts_played",
+  yLabel: "Count",
+  colors: player_color_map,
+  top: 15
+})
+```
+
+```{ojs}
+//| title: "Drafts Won"
+barChart(draftsWonData, {
+  x: "player",
+  y: "drafts_won",
+  yLabel: "Drafts Won",
+  colors: player_color_map,
+  top: 15
+})
+```
+
+### Column {height="50%"}
+
+```{ojs}
+//| title: "Archetype Game Win Rate"
+barChart(archetypeWinData, {
+  x: "archetype",
+  y: "game_win_rate",
+  yLabel: "Game Win Rate",
+  colors: archetype_color_map,
+  rule: true
+})
+```
+
+```{ojs}
+//| title: "Game Win Rate by Player"
+barChart(playerWinData, {
+  x: "player",
+  y: "game_win_rate",
+  yLabel: "Game Win Rate",
+  colors: player_color_map,
+  top: 15,
+  rule: true
+})
 ```

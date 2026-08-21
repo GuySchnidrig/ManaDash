@@ -26,7 +26,6 @@ $env:Path += ";$env:USERPROFILE\.local\bin"
 $env:Path += ";C:\Program Files\Quarto\bin"
 
 # setup
-cd ManaDash
 uv sync
 .venv\Scripts\activate
 cd website
