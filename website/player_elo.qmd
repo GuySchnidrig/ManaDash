@@ -6,7 +6,7 @@ format:
       text: |
         <style>
             #quarto-dashboard-header { display: none }
-            .js-plotly-plot, .plotly-graph-div { width: 200% !important; }
+            .js-plotly-plot, .plotly-graph-div { width: 100% !important; }        
         </style>
 engine: jupyter
 execute:
@@ -152,7 +152,15 @@ display(HTML(
     });
     root.querySelector("#pf-all").onclick   = () => setAll(() => true);
     root.querySelector("#pf-none").onclick  = () => setAll(() => false);
-    root.querySelector("#pf-reset").onclick = () => setAll(v => INITIAL.has(v));
+        function resetZoom() {
+      Plotly.relayout(el, { "xaxis.autorange": true, "yaxis.autorange": true });
+    }
+
+    root.querySelector("#pf-reset").onclick = () => {
+      setAll(v => INITIAL.has(v));
+      resetZoom();
+      fit();
+    };
 
     root.querySelector("#pf-search").addEventListener("input", e => {
       const q = e.target.value.toLowerCase();
@@ -160,6 +168,11 @@ display(HTML(
         it.classList.toggle("pf-hidden", q && !it.dataset.name.includes(q));
       });
     });
+
+       
+    function fit() { Plotly.Plots.resize(el); }
+    window.addEventListener("resize", fit);
+    fit();
 
     apply();
     return true;
@@ -175,8 +188,6 @@ display(HTML(
 ## Column
 
 ```{python}
-#| label: fig-player-elo
-#| fig-cap: "Player ELO over time. Click legend entries to toggle players."
 
 fig = px.line(
     player_elo_df,
