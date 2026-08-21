@@ -18,6 +18,8 @@ website:
         text: Home
       - href: archetypes.qmd
         text: Archetypes
+      - href: decktypes.qmd
+        text: Decktypes
       - href: players.qmd
         text: Players
       - href: player_elo.qmd

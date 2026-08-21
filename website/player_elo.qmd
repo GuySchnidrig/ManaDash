@@ -236,5 +236,5 @@ _ = fig.update_layout(modebar_remove=["toImage", "zoom", "pan", "select", "lasso
 
 
 
-fig.show(config={"responsive": True})
+fig.show(config={"responsive": True, "displaylogo": False})
 ```

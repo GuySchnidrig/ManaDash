@@ -1,5 +1,5 @@
 ---
-title: "Archetypes"
+title: "Decktypes"
 format:
   dashboard:
     scrolling: true
@@ -154,40 +154,42 @@ function barChart(data, {x, y, yLabel, colors, top, rule = false} = {}) {
 ## Main Content
 ## Column
 
+
 ```{ojs}
-//| title: "Archetypes"
-barChart(archetypeCountsData, {
-  x: "archetype",
-  y: "arche_types_count",
+//| title: "Decktypes (top 10)"
+barChart(decktypeCountsData, {
+  x: "decktype",
+  y: "deck_types_count",
   yLabel: "Count",
-  colors: archetype_color_map
+  colors: decktype_color_map,
+  top: 10
 })
 ```
-
 
 ## Column
 
 ```{ojs}
-//| title: "Winning Archetypes (20+ Games)"
-barChart(archetypeGameWinData, {
-  x: "archetype",
+//| title: "Winning Decktypes (20+ Games)"
+barChart(decktypeGameWinData, {
+  x: "decktype",
   y: "game_winrate",
   yLabel: "Game Win Rate",
-  colors: archetype_color_map,
+  colors: decktype_color_map,
+  top: 10,
   rule: true
 })
 ```
 
-
 ## Column
 
 ```{ojs}
-//| title: "Winning Archetypes by Match (5+ Matches)"
-barChart(archetypeMatchWinData, {
-  x: "archetype",
+//| title: "Winning Decktypes by Match (5+ Matches)"
+barChart(decktypeMatchWinData, {
+  x: "decktype",
   y: "match_win_rate",
   yLabel: "Match Win Rate",
-  colors: archetype_color_map,
+  colors: decktype_color_map,
+  top: 10,
   rule: true
 })
 ```
