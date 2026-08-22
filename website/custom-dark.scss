@@ -1,0 +1,23 @@
+/*-- scss:rules --*/
+.nav-tabs .nav-link {
+  color: #ded8c8;
+  background-color: transparent;
+  border-color: transparent;
+
+  &:hover,
+  &:focus {
+    color: #F1E6B2;
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+}
+
+.nav-tabs .nav-link.active,
+.nav-tabs .nav-item.show .nav-link {
+  color: #F1E6B2;
+  background-color: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.2) transparent;
+}
+
+.nav-tabs {
+  border-bottom-color: rgba(255, 255, 255, 0.2);
+}

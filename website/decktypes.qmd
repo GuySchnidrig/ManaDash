@@ -2,7 +2,6 @@
 title: "Decktypes"
 format:
   dashboard:
-    scrolling: true
     include-before-body:
       text: |
           <style>

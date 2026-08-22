@@ -41,5 +41,5 @@ website:
 format:
   dashboard:
     theme:
-      light: sandstone
-      dark: sandstone
+      light: [sandstone, custom.scss]
+      dark:  [darkly, custom.scss, custom-dark.scss]

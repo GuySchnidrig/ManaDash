@@ -1,0 +1,9 @@
+/*-- scss:defaults --*/
+$navbar-hl: #F1E6B2;
+
+/*-- scss:rules --*/
+.navbar .nav-link:hover,
+.navbar .nav-link:focus {
+  color: #F1E6B2 !important;
+  background-color: transparent !important;
+}
