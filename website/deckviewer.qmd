@@ -1,7 +1,500 @@
 ---
 title: "Deck Viewer"
-format: html
-jupyter: python3
+format:
+  dashboard:
+    scrolling: true
+    include-before-body:
+        text: |
+            <style>
+            #quarto-dashboard-header {
+                display: none !important;
+            }
+
+            /* Full-width dashboard */
+            .quarto-dashboard #quarto-content,
+            .quarto-dashboard .quarto-dashboard-content,
+            .quarto-dashboard .bslib-page-dashboard {
+                width: 100% !important;
+                max-width: none !important;
+                padding-top: 0 !important;
+                margin-top: 0 !important;
+                padding-left: 0 !important;
+                padding-right: 0 !important;
+                align-items: start !important;
+            }
+
+            /* Full-width dashboard rows/cards */
+            .quarto-dashboard .dashboard-row {
+                width: 100% !important;
+                max-width: none !important;
+                align-items: start !important;
+                grid-auto-rows: max-content !important;
+            }
+
+            .quarto-dashboard .dashboard-row > .card {
+                width: 100% !important;
+                max-width: none !important;
+                height: auto !important;
+                min-height: 0 !important;
+                align-self: start !important;
+            }
+
+            .quarto-dashboard .dashboard-row > .card > .card-body {
+                width: 100% !important;
+                max-width: none !important;
+                height: auto !important;
+                min-height: 0 !important;
+                box-sizing: border-box !important;
+            }
+
+            /* CMC grid uses the full card width */
+            .cmc-grid {
+                width: 100% !important;
+                max-width: none !important;
+                display: grid;
+                grid-template-columns: repeat(6, minmax(150px, 1fr));
+                gap: 14px;
+                align-items: start;
+                height: auto !important;
+                min-height: 0 !important;
+            }
+
+            .cmc-grid > div {
+                width: 100%;
+                min-width: 0;
+                height: auto !important;
+                min-height: 0 !important;
+            }
+
+            .cmc-col-head {
+                font-size: 12px;
+                font-weight: 600;
+                opacity: 0.7;
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+                margin-bottom: 6px;
+            }
+
+            /* Card stack */
+            .card-stack {
+                display: flex;
+                flex-direction: column;
+                gap: 0;
+                height: auto !important;
+                min-height: 0 !important;
+            }
+
+            .card-stack img {
+                width: 75%;
+                border-radius: 4.75% / 3.5%;
+                display: block;
+                margin-top: -90%;
+                margin-left: auto;
+                margin-right: auto;
+                box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+                transition: transform 0.12s ease, box-shadow 0.12s ease;
+                position: relative;
+            }
+
+            .card-stack img:first-child {
+                margin-top: 0;
+            }
+
+            .card-stack img:hover {
+                transform: scale(1.1);
+                box-shadow: 0 6px 22px rgba(0,0,0,0.55);
+                z-index: 20;
+            }
+            /* Compact horizontal stats card */
+            .stat-grid {
+                display: grid;
+                grid-template-columns: repeat(11, minmax(0, 1fr));
+                gap: 8px;
+                width: 100%;
+                align-items: center;
+                font-size: 13px;
+                margin: 0;
+            }
+
+            .stat-item {
+                min-width: 0;
+                text-align: center;
+                line-height: 1.15;
+            }
+
+            .stat-label {
+                opacity: 0.65;
+                font-size: 11px;
+                white-space: nowrap;
+                margin: 0 0 2px 0;
+            }
+
+            .stat-value {
+                font-weight: 600;
+                font-size: 13px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            /* Remove unnecessary vertical space around the stats */
+            .quarto-dashboard .stat-grid {
+                padding: 0;
+            }
+
+            .quarto-dashboard .dashboard-row > .card:has(.stat-grid) {
+                min-height: 0 !important;
+                height: auto !important;
+            }
+
+            .quarto-dashboard .dashboard-row > .card:has(.stat-grid) > .card-body {
+                padding-top: 8px !important;
+                padding-bottom: 8px !important;
+            }
+            </style>
+engine: jupyter
+execute:
+  echo: false
 ---
 
-Deck Viewer
+## {.toolbar }
+
+```{python}
+#| output: false
+#| echo: false
+
+import sys, os
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "..")))
+from src.backend.backend_functions import *
+
+initialize_data()
+
+CACHE_PATH = os.path.join(DATA_DIR, "card_metadata.csv")
+if not os.path.exists(CACHE_PATH):
+    raise FileNotFoundError(
+        f"{CACHE_PATH} not found. Run:  python -m src.backend.card_images"
+    )
+
+card_meta = pd.read_csv(CACHE_PATH)
+
+# Prefer a locally mirrored image when --download-images was used; otherwise
+# hotlink the Scryfall CDN. Falls back per-card, so a partial mirror still works.
+if "local_path" in card_meta.columns:
+    local = card_meta["local_path"].fillna("").astype(str).str.strip()
+    card_meta["image_src"] = local.where(local != "", card_meta["image_url"])
+else:
+    card_meta["image_src"] = card_meta["image_url"]
+
+card_meta = card_meta[
+    ["card_name", "cmc", "is_creature", "is_land", "image_src"]
+].drop_duplicates(subset="card_name")
+card_meta["cmc"] = card_meta["cmc"].fillna(0).astype(float)
+for col in ["is_creature", "is_land"]:
+    card_meta[col] = card_meta[col].astype(bool)
+
+decks = get_vintage_decks()
+standings = get_vintage_standings()
+
+# One row per (deck, card). Metadata is joined client-side off card_name so
+# this table stays narrow -- ~45 rows per deck instead of a full card record.
+deck_cards = (
+    decks[
+        ["deck_id", "draft_id", "player_id", "card_name"]
+    ]
+    .dropna(subset=["card_name"])
+    .astype({
+        "deck_id": str,
+        "draft_id": str,
+        "player_id": str,
+    })
+    .drop_duplicates(
+        subset=["deck_id", "draft_id", "card_name"]
+    )
+)
+deck_cards = deck_cards.astype({"deck_id": str, "draft_id": str, "player_id": str})
+
+# One row per deck, with the metadata the stats panel needs.
+deck_index = decks.drop_duplicates(subset=["deck_id", "draft_id"]).copy()
+deck_index = add_season_draft_labels(deck_index)
+
+points = standings[["draft_id", "player", "match_points", "standing"]].copy()
+points["draft_id"] = points["draft_id"].astype(str)
+points["player"] = points["player"].astype(str)
+deck_index["draft_id"] = deck_index["draft_id"].astype(str)
+deck_index["player"] = deck_index["player"].astype(str)
+deck_index = deck_index.merge(points, on=["draft_id", "player"], how="left")
+
+# Average CMC excludes lands, matching calculate_stats() in the Dash version.
+nonland_names = set(card_meta.loc[~card_meta["is_land"], "card_name"])
+creature_names = set(card_meta.loc[card_meta["is_creature"], "card_name"])
+cmc_lookup = dict(zip(card_meta["card_name"], card_meta["cmc"]))
+
+summary = []
+
+for (deck_id, draft_id), grp in decks.groupby(["deck_id", "draft_id"]):
+
+    names = (
+        grp["card_name"]
+        .dropna()
+        .astype(str)
+        .drop_duplicates()
+        .tolist()
+    )
+
+    nonlands = [n for n in names if n in nonland_names]
+    creatures = [n for n in nonlands if n in creature_names]
+
+    summary.append({
+        "deck_id": str(deck_id),
+        "draft_id": str(draft_id),
+        "avg_cmc": (
+            sum(cmc_lookup.get(n, 0) for n in nonlands) / len(nonlands)
+        ) if nonlands else 0.0,
+        "n_creatures": len(creatures),
+        "n_noncreatures": len(nonlands) - len(creatures),
+        "n_lands": len(names) - len(nonlands),
+    })
+
+deck_index = deck_index.astype({"deck_id": str, "draft_id": str, "player_id": str})
+deck_index = deck_index.merge(pd.DataFrame(summary), on=["deck_id", "draft_id"], how="left")
+
+DECK_COLS = [
+    "deck_id", "draft_id", "player_id", "player", "season_draft_label",
+    "archetype", "decktype", "deck_color_short", "match_points", "standing",
+    "avg_cmc", "n_creatures", "n_noncreatures", "n_lands",
+]
+for col in DECK_COLS:
+    if col not in deck_index.columns:
+        deck_index[col] = None
+deck_index = deck_index[DECK_COLS].sort_values(
+    ["player", "draft_id"], ascending=[True, False]
+)
+deck_index["player"] = deck_index["player"].astype(str)
+
+# Derived from deck_index, not get_vintage_players(): a player can only appear
+# in the dropdown if they actually have decks, so an empty deck list is
+# impossible. Matching on name also sidesteps player_id dtype drift between
+# standings (int) and drafted_decks (float -> "7" vs "7.0" after astype(str)).
+players = pd.DataFrame(
+    {"player": sorted(deck_index["player"].dropna().unique())}
+)
+
+print(f"{len(players)} players, {len(deck_index)} decks, {len(deck_cards)} deck-card rows")
+
+ojs_define(
+    players=players,
+    deck_index=deck_index,
+    deck_cards=deck_cards,
+    card_meta=card_meta,
+)
+```
+
+```{ojs}
+//| panel: input
+viewof playerPick = Inputs.select(
+  playersData.map(d => d.player),
+  {
+    label: "Player",
+    value: playersData[0]?.player
+  }
+)
+
+viewof deckPick = Inputs.select(
+  playerDecks.map(d => `${d.deck_id}|${d.draft_id}`),
+  {
+    label: "Deck",
+    format: key => {
+      const d = deckByKey.get(key);
+      return d ? `${d.deck_id} (${d.season_draft_label})` : key;
+    },
+    value: playerDecks[0] ? `${playerDecks[0].deck_id}|${playerDecks[0].draft_id}` : null
+  }
+)
+```
+
+```{ojs}
+//| output: false
+playersData = transpose(players)
+deckIndexData = transpose(deck_index)
+deckCardsData = transpose(deck_cards)
+cardMetaData = transpose(card_meta)
+```
+
+```{ojs}
+//| output: false
+cardByName = new Map(cardMetaData.map(d => [d.card_name, d]))
+```
+
+```{ojs}
+//| output: false
+deckByKey = new Map(
+  deckIndexData.map(d => [`${d.deck_id}|${d.draft_id}`, d])
+)
+```
+
+```{ojs}
+//| output: false
+// Rebuilds when the player changes, which re-creates the deck select.
+playerDecks = deckIndexData.filter(d => d.player === playerPick)
+```
+
+```{ojs}
+//| output: false
+selectedDeck = deckByKey.get(deckPick)
+```
+
+```{ojs}
+//| output: false
+selectedCards = {
+  if (!selectedDeck) return [];
+
+  const seen = new Set();
+
+  return deckCardsData
+    .filter(d =>
+      d.deck_id === selectedDeck.deck_id &&
+      d.draft_id === selectedDeck.draft_id
+    )
+    .map(d => cardByName.get(d.card_name))
+    .filter(d => {
+      if (!d || seen.has(d.card_name)) return false;
+      seen.add(d.card_name);
+      return true;
+    })
+    .sort((a, b) => d3.ascending(a.card_name, b.card_name));
+}
+```
+
+```{ojs}
+//| output: false
+// Same bucketing as group_cards_by_cmc(): 0-4 then everything 5+ together.
+CMC_KEYS = ["0", "1", "2", "3", "4", "5+"]
+
+bucket = c => c.cmc >= 5 ? "5+" : String(Math.trunc(c.cmc || 0))
+
+cardGrid = cards => {
+  const root = document.createElement("div");
+  root.className = "cmc-grid";
+
+  if (!cards.length) {
+    root.innerHTML = `<p class="text-muted">No cards.</p>`;
+    return root;
+  }
+
+  const groups = d3.group(cards, bucket);
+
+  for (const k of CMC_KEYS) {
+    const group = groups.get(k);
+    if (!group) continue;
+
+    const column = document.createElement("div");
+
+    const header = document.createElement("div");
+    header.className = "cmc-col-head";
+    header.textContent = `CMC ${k} · ${group.length}`;
+
+    const stack = document.createElement("div");
+    stack.className = "card-stack";
+
+    for (const c of group) {
+      const img = document.createElement("img");
+
+      img.src = c.image_src;
+      img.alt = c.card_name;
+      img.title = c.card_name;
+      img.loading = "lazy";
+
+      stack.appendChild(img);
+    }
+
+    column.appendChild(header);
+    column.appendChild(stack);
+    root.appendChild(column);
+  }
+
+  return root;
+};
+```
+
+
+
+
+```{ojs}
+//| title: "Deck Stats"
+
+
+selectedDeck === undefined
+  ? html`<p class="text-muted">Select a deck.</p>`
+  : html`
+      <div class="stat-grid">
+        <div class="stat-item">
+          <div class="stat-label">Player</div>
+          <div class="stat-value">${selectedDeck.player}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Draft</div>
+          <div class="stat-value">${selectedDeck.season_draft_label}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Archetype</div>
+          <div class="stat-value">${selectedDeck.archetype ?? "—"}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Deck Type</div>
+          <div class="stat-value">${selectedDeck.decktype ?? "—"}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Deck Color</div>
+          <div class="stat-value">${selectedDeck.deck_color_short ?? "—"}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Match Points</div>
+          <div class="stat-value">${selectedDeck.match_points ?? "—"}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Standing</div>
+          <div class="stat-value">${selectedDeck.standing ?? "—"}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Average CMC</div>
+          <div class="stat-value">${d3.format(".2f")(selectedDeck.avg_cmc ?? 0)}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Creatures</div>
+          <div class="stat-value">${selectedDeck.n_creatures ?? 0}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Non-Creatures</div>
+          <div class="stat-value">${selectedDeck.n_noncreatures ?? 0}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Lands</div>
+          <div class="stat-value">${selectedDeck.n_lands ?? 0}</div>
+        </div>
+      </div>
+    `
+```
+
+# Main Content
+
+### Row 
+
+```{ojs}
+//| title: "Creatures"
+cardGrid(selectedCards.filter(c => c.is_creature && !c.is_land))
+```
+
+## Row
+
+```{ojs}
+//| title: "Non-Creatures"
+cardGrid(selectedCards.filter(c => !c.is_creature && !c.is_land))
+```
+
+## Row
+
+```{ojs}
+//| title: "Lands"
+cardGrid(selectedCards.filter(c => c.is_land))
+```

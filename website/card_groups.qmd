@@ -1,0 +1,341 @@
+---
+title: "Card Groups"
+format:
+  dashboard:
+    include-before-body:
+      text: |
+          <style>
+          #quarto-dashboard-header { display: none !important; }
+          .quarto-dashboard #quarto-content,
+          .quarto-dashboard .quarto-dashboard-content,
+          .quarto-dashboard .bslib-page-dashboard {
+            padding-top: 0 !important;
+            margin-top: 0 !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+          }
+          .quarto-dashboard .toolbar,
+          .quarto-dashboard .card.toolbar {
+            margin-top: 0 !important;
+            border-top: 0 !important;
+            border-top-left-radius: 0 !important;
+            border-top-right-radius: 0 !important;
+          }
+          </style>
+engine: jupyter
+execute:
+  echo: false
+---
+
+## {.toolbar }
+
+```{python}
+#| output: false
+#| echo: false
+
+import sys, os
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "..")))
+from src.backend.backend_functions import *
+
+initialize_data()
+
+# Adjust if your output_*.csv files live elsewhere.
+DATA_DIR = os.path.abspath(os.path.join(os.getcwd(), "..", "data"))
+GROUP_PATH = os.path.join(DATA_DIR, "output_group_analysis.csv")
+
+# Fail here rather than three cells later with an opaque KeyError.
+if not os.path.exists(GROUP_PATH):
+    raise FileNotFoundError(GROUP_PATH)
+
+group_raw = pd.read_csv(GROUP_PATH)
+
+MODELS = ["v0", "v1", "v2"]
+
+# Edit these once you want the covariate sets spelled out in the UI.
+MODEL_LABELS = {"v0": "v0", "v1": "v1", "v2": "v2"}
+
+# Per-model metrics stored wide as `<model>_<metric>`; reshape to long so the
+# model selector works the same way the season selector does elsewhere.
+METRICS = [
+    "coef", "se", "z", "p", "or", "or_lower", "or_upper", "aic", "separation",
+    "win_rate_lift_prob", "win_rate_lift_mean_prob",
+    "win_rate_lift_pct", "win_rate_lift_mean_pct",
+    "win_rate_lift_std", "win_rate_lift_mean_std",
+    "p_adj", "significant_raw", "significant_fdr",
+]
+
+# Constant across models -- carried along for the cross-model stability view.
+SHARED = [c for c in ["group_id", "group_name", "n_games_with_group",
+                      "or_range", "or_mean", "or_cv"]
+          if c in group_raw.columns]
+
+frames = []
+for model in MODELS:
+    renames = {f"{model}_{m}": m for m in METRICS
+               if f"{model}_{m}" in group_raw.columns}
+    missing = [m for m in METRICS if f"{model}_{m}" not in group_raw.columns]
+    if missing:
+        raise KeyError(f"Model {model} is missing metrics: {missing}")
+    part = group_raw[SHARED + list(renames)].rename(columns=renames)
+    part.insert(0, "model", model)
+    frames.append(part)
+
+group_stats = pd.concat(frames, ignore_index=True)
+
+for col in ["separation", "significant_raw", "significant_fdr"]:
+    group_stats[col] = group_stats[col].astype(bool)
+
+group_stats = group_stats.sort_values(
+    ["model", "or"], ascending=[True, False]
+).reset_index(drop=True)
+
+models = [MODEL_LABELS[m] for m in MODELS]
+model_lookup = {MODEL_LABELS[m]: m for m in MODELS}
+
+ojs_define(
+    models=models,
+    model_lookup=model_lookup,
+    # NB: do not name this `cards` -- that shadows the OJS stdlib `cards`
+    # reactive that Quarto uses to autosize Plot.plot() calls in dashboards.
+    group_stats=group_stats,
+)
+```
+
+```{ojs}
+//| panel: input
+viewof modelLabel = Inputs.select(models, {
+  label: "Model",
+  value: models[models.length - 1]
+})
+
+viewof groupSearch = Inputs.text({
+  label: "Search Group",
+  placeholder: "Search group...",
+  submit: false
+})
+
+viewof minGames = Inputs.number([0, Infinity], {
+  label: "Min Games With Group",
+  value: 0,
+  step: 50
+})
+
+viewof sigOnly = Inputs.toggle({
+  label: "FDR significant only",
+  value: false
+})
+```
+
+```{ojs}
+//| output: false
+groupsData = transpose(group_stats)
+```
+
+```{ojs}
+//| output: false
+modelId = model_lookup[modelLabel]
+```
+
+```{ojs}
+//| output: false
+// The number input yields null when cleared; treat that as no minimum.
+groupRows = {
+  const query = (groupSearch ?? "").trim().toLowerCase();
+  const floor = minGames ?? 0;
+  return groupsData
+    .filter(d =>
+      d.model === modelId &&
+      d.n_games_with_group >= floor &&
+      (!sigOnly || d.significant_fdr) &&
+      (query === "" || String(d.group_name).toLowerCase().includes(query))
+    )
+    .sort((a, b) => d3.descending(a.or, b.or));
+}
+```
+
+```{ojs}
+//| output: false
+sigLevel = d => d.significant_fdr ? "FDR significant"
+             : d.significant_raw  ? "p < 0.05 (raw)"
+             : "Not significant"
+```
+
+```{ojs}
+//| output: false
+sigDomain = ["FDR significant", "p < 0.05 (raw)", "Not significant"]
+```
+
+```{ojs}
+//| output: false
+sigRange = ["var(--bs-primary)", "var(--bs-warning)", "var(--bs-secondary)"]
+```
+
+```{ojs}
+//| output: false
+// Rank by effect size, not by p -- ties in p are common after FDR adjustment.
+topGroups = groupRows
+  .slice()
+  .sort((a, b) => d3.descending(Math.abs(a.win_rate_lift_pct),
+                                Math.abs(b.win_rate_lift_pct)))
+  .slice(0, 5)
+```
+
+```{ojs}
+//| output: false
+fmtOR = d3.format(".3f")
+fmtPP = d3.format("+.2f")
+fmtP  = p => p < 0.001 ? d3.format(".2e")(p) : d3.format(".3f")(p)
+```
+
+```{ojs}
+//| output: false
+orCell = d => htl.html`<span style="font-variant-numeric: tabular-nums">${fmtOR(d)}</span>`
+
+liftCell = x => htl.html`<span style="color: ${
+  x > 0 ? "var(--bs-success)" : x < 0 ? "var(--bs-danger)" : "inherit"
+}; font-weight: ${Math.abs(x) >= 2 ? 600 : 400};
+   font-variant-numeric: tabular-nums">${fmtPP(x)} pp</span>`
+
+pCell = p => htl.html`<span style="color: ${
+  p < 0.05 ? "var(--bs-success)" : "inherit"
+}; font-weight: ${p < 0.05 ? 600 : 400};
+   font-variant-numeric: tabular-nums">${fmtP(p)}</span>`
+```
+
+# Main Content
+
+## Column   {height="50%"}
+
+
+```{ojs}
+//| title: "Group Effect on Game Win: Odds Ratio (95% CI)"
+
+//| title: "Group Effect on Game Win: Odds Ratio (95% CI)"
+
+{
+  if (groupRows.length === 0)
+    return html`<p class="text-muted">No groups match the current filters.</p>`;
+
+  // log scale can't show non-positive bounds; ignore them for the extent
+  const lo = d3.min(groupRows, d => d.or_lower > 0 ? d.or_lower : null) ?? 1;
+  const hi = d3.max(groupRows, d => d.or_upper > 0 ? d.or_upper : null) ?? 1;
+  const xDomain = [Math.min(lo, 1) / 1.15, Math.max(hi, 1) * 1.15];
+
+  return Plot.plot({
+    height: Math.max(240, groupRows.length * 34 + 80),
+    marginLeft: 190,
+    marginRight: 30,
+    marginBottom: 45,
+    style: {fontSize: "13px"},
+    x: {
+      type: "log",
+      label: "Odds Ratio (log scale)",
+      grid: true,
+      domain: xDomain,
+      ticks: 6,
+      tickFormat: d => d3.format(".2f")(d)
+    },
+    y: {label: null, domain: groupRows.map(d => d.group_name)},
+    color: {
+      domain: sigDomain,
+      range: sigRange,
+      legend: true,
+      label: "Significance"
+    },
+    marks: [
+      Plot.ruleX([1], {
+        stroke: "gray", strokeDasharray: "4,4", strokeOpacity: 0.6
+      }),
+      Plot.link(groupRows, {
+        y: "group_name",
+        x1: "or_lower",
+        x2: "or_upper",
+        stroke: sigLevel,
+        strokeWidth: 2,
+        strokeOpacity: 0.7
+      }),
+      // Whisker caps: `markerStart/markerEnd: "tick"` needs a newer Plot
+      // than Quarto bundles, so draw them as marks instead.
+      Plot.tickX(groupRows, {
+        y: "group_name",
+        x: "or_lower",
+        stroke: sigLevel,
+        strokeWidth: 2,
+        strokeOpacity: 0.7,
+        inset: 11
+      }),
+      Plot.tickX(groupRows, {
+        y: "group_name",
+        x: "or_upper",
+        stroke: sigLevel,
+        strokeWidth: 2,
+        strokeOpacity: 0.7,
+        inset: 11
+      }),
+      Plot.dot(groupRows, {
+        y: "group_name",
+        x: "or",
+        fill: sigLevel,
+        r: 6,
+        stroke: "white",
+        strokeWidth: 1,
+        channels: {
+          Group: "group_name",
+          Games: "n_games_with_group",
+          "95% CI": d => `${fmtOR(d.or_lower)} – ${fmtOR(d.or_upper)}`,
+          "Win rate lift": d => `${fmtPP(d.win_rate_lift_pct)} pp`,
+          "p (raw)": d => fmtP(d.p),
+          "p (FDR)": d => fmtP(d.p_adj),
+          AIC: d => d3.format(".1f")(d.aic)
+        },
+        tip: {format: {
+          Group: true, Games: ",.0f", "95% CI": true, "Win rate lift": true,
+          "p (raw)": true, "p (FDR)": true, AIC: true,
+          x: false, y: false, fill: false, r: false
+        }}
+      })
+    ]
+  });
+}
+```
+
+## Column   {height="20%"}
+```{ojs}
+//| title: "Detailed Group Statistics"
+Inputs.table(groupRows, {
+  columns: [
+    "group_name", "n_games_with_group", "or", "or_lower", "or_upper",
+    "win_rate_lift_pct", "p", "p_adj", "aic", "or_cv"
+  ],
+  header: {
+    group_name: "Group",
+    n_games_with_group: "Games",
+    or: "OR",
+    or_lower: "CI low",
+    or_upper: "CI high",
+    win_rate_lift_pct: "Win Rate Lift",
+    p: "p",
+    p_adj: "p (FDR)",
+    aic: "AIC",
+    or_cv: "OR CV"
+  },
+  format: {
+    or: orCell,
+    or_lower: fmtOR,
+    or_upper: fmtOR,
+    win_rate_lift_pct: liftCell,
+    p: pCell,
+    p_adj: pCell,
+    aic: d3.format(".1f"),
+    or_cv: d3.format(".3f")
+  },
+  align: {
+    n_games_with_group: "right", or: "right", or_lower: "right",
+    or_upper: "right", win_rate_lift_pct: "right", p: "right",
+    p_adj: "right", aic: "right", or_cv: "right"
+  },
+  rows: 20,
+  layout: "auto"
+})
+```

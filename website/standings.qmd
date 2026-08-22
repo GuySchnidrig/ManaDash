@@ -1,7 +1,167 @@
 ---
 title: "Standings"
-format: html
-jupyter: python3
+format:
+  dashboard:
+    include-before-body:
+      text: |
+          <style>
+          #quarto-dashboard-header { display: none !important; }
+          .quarto-dashboard #quarto-content,
+          .quarto-dashboard .quarto-dashboard-content,
+          .quarto-dashboard .bslib-page-dashboard {
+            padding-top: 0 !important;
+            margin-top: 0 !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+          }
+          .quarto-dashboard .toolbar,
+          .quarto-dashboard .card.toolbar {
+            margin-top: 0 !important;
+            border-top: 0 !important;
+            border-top-left-radius: 0 !important;
+            border-top-right-radius: 0 !important;
+          }
+          </style>
+engine: jupyter
+execute:
+  echo: false
 ---
 
-Standings
+## {.toolbar }
+
+```{python}
+#| output: false
+#| echo: false
+
+import sys, os
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "..")))
+from src.backend.backend_functions import *
+
+initialize_data()
+
+standings = get_vintage_standings().copy()
+standings = add_season_draft_labels(standings)
+
+# Newest draft first; Inputs.table preserves input order until a header is
+# clicked, so this is the default view.
+standings = standings.sort_values("draft_id", ascending=False)
+
+COLUMNS = [
+    "season_draft_label", "player", "match_points", "standing",
+    "game_points", "games_played", "MWP", "OMP", "GWP", "OGP",
+]
+
+missing = [c for c in COLUMNS if c not in standings.columns]
+if missing:
+    raise KeyError(f"get_vintage_standings() is missing columns: {missing}")
+
+standings = standings[COLUMNS]
+standings["season_draft_label"] = standings["season_draft_label"].astype(str)
+standings["player"] = standings["player"].astype(str)
+
+draft_labels = ["All drafts"] + list(standings["season_draft_label"].unique())
+players = ["All players"] + sorted(standings["player"].unique())
+
+ojs_define(
+    draft_labels=draft_labels,
+    players=players,
+    standings=standings,
+)
+```
+
+```{ojs}
+//| panel: input
+viewof draftPick = Inputs.select(draft_labels, {
+  label: "Draft",
+  value: draft_labels[0]
+})
+
+viewof playerPick = Inputs.select(players, {
+  label: "Player",
+  value: players[0]
+})
+
+viewof search = Inputs.text({
+  label: "Search",
+  placeholder: "Player or draft...",
+  submit: false
+})
+```
+
+```{ojs}
+//| output: false
+standingsData = transpose(standings)
+```
+
+```{ojs}
+//| output: false
+// Replaces the Dash DataTable's per-column `filter_action`: two exact-match
+// selects plus a case-insensitive substring search across both text columns.
+standingsRows = {
+  const query = (search ?? "").trim().toLowerCase();
+  return standingsData.filter(d =>
+    (draftPick === "All drafts" || d.season_draft_label === draftPick) &&
+    (playerPick === "All players" || d.player === playerPick) &&
+    (query === "" ||
+      String(d.player).toLowerCase().includes(query) ||
+      String(d.season_draft_label).toLowerCase().includes(query))
+  );
+}
+```
+
+```{ojs}
+//| output: false
+// Percentage columns can be null for players with no recorded opponents.
+fmt2 = x => (x == null || Number.isNaN(x)) ? "" : d3.format(".2f")(x)
+
+standingCell = x => htl.html`<span style="font-weight: ${x === 1 ? 700 : 400};
+  color: ${x === 1 ? "var(--bs-success)" : "inherit"};
+  font-variant-numeric: tabular-nums">${x}</span>`
+```
+
+# Main Content
+
+## Row
+
+```{ojs}
+//| title: "Vintage Cube Standings"
+standingsRows.length === 0
+  ? html`<p class="text-muted">No standings match the current filters.</p>`
+  : Inputs.table(standingsRows, {
+      columns: [
+        "season_draft_label", "player", "match_points", "standing",
+        "game_points", "games_played", "MWP", "OMP", "GWP", "OGP"
+      ],
+      header: {
+        season_draft_label: "Draft ID",
+        player: "Player",
+        match_points: "Match Points",
+        standing: "Standing",
+        game_points: "Game Points",
+        games_played: "Games Played",
+        MWP: "Match Win % (MWP)",
+        OMP: "Opp Match Win % (OMP)",
+        GWP: "Game Win % (GWP)",
+        OGP: "Opp Game Win % (OGP)"
+      },
+      format: {
+        standing: standingCell,
+        MWP: fmt2,
+        OMP: fmt2,
+        GWP: fmt2,
+        OGP: fmt2
+      },
+      align: {
+        match_points: "right", standing: "right", game_points: "right",
+        games_played: "right", MWP: "right", OMP: "right",
+        GWP: "right", OGP: "right"
+      },
+      width: {
+        season_draft_label: 130,
+        player: 140
+      },
+      rows: 30,
+      layout: "auto"
+    })
+```

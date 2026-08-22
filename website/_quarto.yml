@@ -26,8 +26,12 @@ website:
         text: Elo
       - href: deckviewer.qmd
         text: Deck Viewer
-      - href: card_strength.qmd
-        text: Card Strength
+      - href: cards.qmd
+        text: Cards Stats
+      - href: card_groups.qmd
+        text: Card Groups
+      - href: card_impact.qmd
+        text: Card Impact
       - href: standings.qmd
         text: Standings
     right:

@@ -43,6 +43,9 @@ _, archetype_color_map, decktype_color_map = get_color_maps()
 
 decks_with_standings = get_decks_with_standings()
 
+# Adjust if your output_*.csv files live elsewhere.
+DATA_DIR = os.path.abspath(os.path.join(os.getcwd(), "..", "data"))
+
 
 def counts_by_season(df, category, out_col):
     """Distinct deck count per (season, category), plus a 'Season-All' total."""
@@ -91,6 +94,15 @@ decktype_match_winrate_by_season = winrate_by_season(
     "decktype", "matches_played", "matches_won", 5, "match_win_rate",
 )
 
+strength_path = os.path.join(DATA_DIR, "output_archetype_strength_empirical.csv")
+if not os.path.exists(strength_path):
+    raise FileNotFoundError(strength_path)
+
+archetype_strength = pd.read_csv(strength_path)
+assert "season_id" in archetype_strength.columns, (
+    f"Unexpected columns: {list(archetype_strength.columns)}"
+)
+
 tables = [
     archetype_counts_by_season,
     decktype_counts_by_season,
@@ -98,6 +110,7 @@ tables = [
     decktype_game_winrate_by_season,
     archetype_match_winrate_by_season,
     decktype_match_winrate_by_season,
+    archetype_strength,
 ]
 
 # 'Season-All' is a precomputed aggregate row in the source data; pin it first.
@@ -114,6 +127,7 @@ ojs_define(
     decktype_game_winrate_by_season=decktype_game_winrate_by_season,
     archetype_match_winrate_by_season=archetype_match_winrate_by_season,
     decktype_match_winrate_by_season=decktype_match_winrate_by_season,
+    archetype_strength=archetype_strength,
     archetype_color_map=archetype_color_map,
     decktype_color_map=decktype_color_map,
 )
@@ -140,14 +154,17 @@ archetypeGameWinData = transpose(archetype_game_winrate_by_season)
 decktypeGameWinData = transpose(decktype_game_winrate_by_season)
 archetypeMatchWinData = transpose(archetype_match_winrate_by_season)
 decktypeMatchWinData = transpose(decktype_match_winrate_by_season)
+archetypeStrengthData = transpose(archetype_strength)
 ```
 
 ```{ojs}
 //| output: false
 // Filters to the selected season, sorts descending by `y`, optionally keeps the
-// top `top` rows, and draws a bar chart. `rule` adds the 50% reference line.
-//| output: false
-function barChart(data, {x, y, yLabel, colors, top, rule = false, yMin,
+// top `top` rows, and draws a bar chart. `rule` adds a reference line: pass
+// `true` for the 50% line, or any number (0 included) for a custom baseline.
+// Note the `null` default -- `rule: 0` is falsy, so a boolean default would
+// silently drop the zero line on diverging charts.
+function barChart(data, {x, y, yLabel, colors, top, rule = null, yMin,
                         height = 700, fontSize = 28, wrap = true} = {}) {
   const rows = data
     .filter(d => d.season_id === season)
@@ -186,7 +203,7 @@ function barChart(data, {x, y, yLabel, colors, top, rule = false, yMin,
     color: {domain: Object.keys(colors), range: Object.values(colors)},
     marks: [
       Plot.barY(rows, {x, y, fill: x, tip: true}),
-      rule ? Plot.ruleY([0.5], {
+      rule != null ? Plot.ruleY([rule === true ? 0.5 : rule], {
         stroke: "gray", strokeDasharray: "4,4", strokeOpacity: 0.5
       }) : null
     ]
@@ -205,10 +222,22 @@ barChart(archetypeCountsData, {
   y: "arche_types_count",
   yLabel: "Count",
   colors: archetype_color_map,
-  height: 300,
-  fontSize: 14
+
 })
 ```
+
+```{ojs}
+//| title: "Win Rate Lift vs. Field Average"
+barChart(archetypeStrengthData, {
+  x: "archetype",
+  y: "archetype_win_rate_lift_pct",
+  yLabel: "Lift (% points)",
+  colors: archetype_color_map,
+  rule: 0,
+
+})
+```
+
 ## Column {height="50%"}
 
 ```{ojs}
