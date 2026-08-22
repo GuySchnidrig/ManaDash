@@ -5,7 +5,24 @@ format:
     scrolling: true
     include-before-body:
       text: |
-        <style>#quarto-dashboard-header { display: none }</style>
+          <style>
+          #quarto-dashboard-header { display: none !important; }
+          .quarto-dashboard #quarto-content,
+          .quarto-dashboard .quarto-dashboard-content,
+          .quarto-dashboard .bslib-page-dashboard {
+            padding-top: 0 !important;
+            margin-top: 0 !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+          }
+          .quarto-dashboard .toolbar,
+          .quarto-dashboard .card.toolbar {
+            margin-top: 0 !important;
+            border-top: 0 !important;
+            border-top-left-radius: 0 !important;
+            border-top-right-radius: 0 !important;
+          }
+          </style>
 engine: jupyter
 execute:
   echo: false
