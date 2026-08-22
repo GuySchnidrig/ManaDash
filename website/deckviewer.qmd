@@ -429,14 +429,6 @@ selectedDeck === undefined
   : html`
       <div class="stat-grid">
         <div class="stat-item">
-          <div class="stat-label">Player</div>
-          <div class="stat-value">${selectedDeck.player}</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-label">Draft</div>
-          <div class="stat-value">${selectedDeck.season_draft_label}</div>
-        </div>
-        <div class="stat-item">
           <div class="stat-label">Archetype</div>
           <div class="stat-value">${selectedDeck.archetype ?? "—"}</div>
         </div>
@@ -469,7 +461,7 @@ selectedDeck === undefined
           <div class="stat-value">${selectedDeck.n_noncreatures ?? 0}</div>
         </div>
         <div class="stat-item">
-          <div class="stat-label">Lands</div>
+          <div class="stat-label">Nonbasic Lands</div>
           <div class="stat-value">${selectedDeck.n_lands ?? 0}</div>
         </div>
       </div>
@@ -495,6 +487,6 @@ cardGrid(selectedCards.filter(c => !c.is_creature && !c.is_land))
 ## Row
 
 ```{ojs}
-//| title: "Lands"
+//| title: "Nonbasic Lands"
 cardGrid(selectedCards.filter(c => c.is_land))
 ```
