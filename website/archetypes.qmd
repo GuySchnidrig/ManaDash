@@ -45,10 +45,15 @@ decks_with_standings = get_decks_with_standings()
 
 
 def counts_by_season(df, category, out_col):
-    """Distinct deck count per (season, category)."""
-    return df.groupby(["season_id", category], as_index=False).agg(
+    """Distinct deck count per (season, category), plus a 'Season-All' total."""
+    per_season = df.groupby(["season_id", category], as_index=False).agg(
         **{out_col: ("deck_id", "nunique")}
     )
+    overall = df.groupby(category, as_index=False).agg(
+        **{out_col: ("deck_id", "nunique")}
+    )
+    overall.insert(0, "season_id", "Season-All")
+    return pd.concat([per_season, overall], ignore_index=True)
 
 
 def winrate_by_season(df, category, played, won, min_played, rate_col):
