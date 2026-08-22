@@ -31,8 +31,8 @@ initialize_data()
 player_color_map, archetype_color_map, decktype_color_map = get_color_maps()
 
 INITIAL_PLAYERS = [
-    "Dimlas", "Andrin", "Sili", "Manuel", "Lukas Stalder",
-    "Tommy", "Noe", "Guy", "Ivo"
+    "Dimlas", "Andrin", "Sili", "Valetin", "Tinu",
+    "Tommy", "Noe", "Guy", "Ivo", "Joel K.", "Myri",
 ]
 
 player_elo_df = get_player_elo()

@@ -24,8 +24,6 @@ website:
         text: Players
       - href: player_elo.qmd
         text: Elo
-      - href: decks.qmd
-        text: Decks
       - href: deckviewer.qmd
         text: Deck Viewer
       - href: card_strength.qmd

@@ -2,7 +2,6 @@
 title: "Archetypes"
 format:
   dashboard:
-    scrolling: true
     include-before-body:
       text: |
         <style>#quarto-dashboard-header { display: none }</style>
@@ -125,34 +124,57 @@ decktypeMatchWinData = transpose(decktype_match_winrate_by_season)
 //| output: false
 // Filters to the selected season, sorts descending by `y`, optionally keeps the
 // top `top` rows, and draws a bar chart. `rule` adds the 50% reference line.
-function barChart(data, {x, y, yLabel, colors, top, rule = false} = {}) {
+//| output: false
+function barChart(data, {x, y, yLabel, colors, top, rule = false, yMin,
+                        height = 700, fontSize = 28, wrap = true} = {}) {
   const rows = data
     .filter(d => d.season_id === season)
     .sort((a, b) => d3.descending(a[y], b[y]))
     .slice(0, top ?? Infinity);
 
+  const label = s => String(s).replace(/[_\s]+/g, "\n");
+  const lines = wrap ? d3.max(rows, d => label(d[x]).split("\n").length) : 1;
+  const rotate = wrap ? 0 : (rows.length > 12 ? -45 : 0);
+
   return Plot.plot({
     width,
-    height: 350,
-    marginBottom: 40,
-    style: {fontSize: "18px"},
-    x: {label: null, lineWidth: 10, domain: rows.map(d => d[x])},
-    y: {label: yLabel},
+    height,
+    marginBottom: rotate ? height * 0.31
+                : wrap ? fontSize * 1.2 * lines + 24
+                : height * 0.16,
+    marginLeft: fontSize * 2.5,
+    style: {fontSize: `${fontSize}px`},
+    x: {
+      label: null,
+      domain: rows.map(d => d[x]),
+      ticks: rows.map(d => d[x]),
+      tickFormat: wrap ? label : undefined,
+      tickRotate: rotate,
+      tickPadding: 8
+    },
+    y: {
+      label: yLabel,
+      labelArrow: "none",
+      labelAnchor: "center",
+      labelOffset: fontSize * 2.5,
+      ticks: 5,
+      grid: true,
+      domain: yMin === undefined ? undefined : [yMin, d3.max(rows, d => d[y])]
+    },
     color: {domain: Object.keys(colors), range: Object.values(colors)},
     marks: [
       Plot.barY(rows, {x, y, fill: x, tip: true}),
       rule ? Plot.ruleY([0.5], {
-        stroke: "gray",
-        strokeDasharray: "4,4",
-        strokeOpacity: 0.5
+        stroke: "gray", strokeDasharray: "4,4", strokeOpacity: 0.5
       }) : null
     ]
   });
 }
 ```
 
-## Main Content
-## Column
+# Main Content
+
+## Column {height="50%"}
 
 ```{ojs}
 //| title: "Archetypes"
@@ -160,12 +182,12 @@ barChart(archetypeCountsData, {
   x: "archetype",
   y: "arche_types_count",
   yLabel: "Count",
-  colors: archetype_color_map
+  colors: archetype_color_map,
+  height: 300,
+  fontSize: 14
 })
 ```
-
-
-## Column
+## Column {height="50%"}
 
 ```{ojs}
 //| title: "Winning Archetypes (20+ Games)"
@@ -177,9 +199,6 @@ barChart(archetypeGameWinData, {
   rule: true
 })
 ```
-
-
-## Column
 
 ```{ojs}
 //| title: "Winning Archetypes by Match (5+ Matches)"
