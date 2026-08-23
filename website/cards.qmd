@@ -1,0 +1,216 @@
+---
+title: "Card Stats"
+format:
+  dashboard:
+    include-before-body:
+      text: |
+          <style>
+          #quarto-dashboard-header { display: none !important; }
+          .quarto-dashboard #quarto-content,
+          .quarto-dashboard .quarto-dashboard-content,
+          .quarto-dashboard .bslib-page-dashboard {
+            padding-top: 0 !important;
+            margin-top: 0 !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+          }
+          .quarto-dashboard .toolbar,
+          .quarto-dashboard .card.toolbar {
+            margin-top: 0 !important;
+            border-top: 0 !important;
+            border-top-left-radius: 0 !important;
+            border-top-right-radius: 0 !important;
+          }
+          </style>
+engine: jupyter
+execute:
+  echo: false
+---
+
+## {.toolbar }
+
+```{python}
+#| output: false
+#| echo: false
+
+import sys, os
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "..")))
+from src.backend.backend_functions import *
+
+initialize_data()
+
+card_stats = get_data("card_game_winrate_per_season").copy()
+
+# The Dash page assumed this column existed; derive it if the backend stops
+# providing it, so a schema change fails in Python rather than silently in OJS.
+if "game_win_rate" not in card_stats.columns:
+    card_stats["game_win_rate"] = card_stats["games_won"] / card_stats["games_played"]
+
+card_stats["season_id"] = card_stats["season_id"].astype(str)
+card_stats = card_stats[
+    ["season_id", "card_name", "games_played", "games_won", "game_win_rate"]
+].sort_values("games_played", ascending=False)
+
+# 'Season-All' is a precomputed aggregate row in the source data; pin it first.
+seasons = sorted(card_stats["season_id"].unique())
+if "Season-All" in seasons:
+    seasons.remove("Season-All")
+    seasons.insert(0, "Season-All")
+
+ojs_define(
+    seasons=seasons,
+    # NB: do not name this `cards` -- that shadows the OJS stdlib `cards`
+    # reactive that Quarto uses to autosize Plot.plot() calls in dashboards.
+    card_stats=card_stats,
+)
+```
+
+```{ojs}
+//| panel: input
+viewof season = Inputs.select(seasons, {
+  label: "Season",
+  value: seasons[0]
+})
+
+viewof cardSearch = Inputs.text({
+  label: "Search Card",
+  placeholder: "Search card...",
+  submit: false
+})
+
+viewof minGames = Inputs.number([0, Infinity], {
+  label: "Min Games Played",
+  value: 10,
+  step: 1
+})
+```
+
+```{ojs}
+//| output: false
+cardsData = transpose(card_stats)
+
+// The number input yields null when cleared; treat that as no minimum.
+filtered = {
+  const query = (cardSearch ?? "").trim().toLowerCase();
+  const floor = minGames ?? 0;
+  return cardsData.filter(d =>
+    d.season_id === season &&
+    d.games_played >= floor &&
+    (query === "" || String(d.card_name).toLowerCase().includes(query))
+  );
+}
+
+avgWinRate = filtered.length ? d3.mean(filtered, d => d.game_win_rate) : 0
+totalGames = d3.sum(filtered, d => d.games_played)
+highPerformers = filtered.filter(d => d.game_win_rate > 0.55).length
+
+// Mirrors the Plotly version: pad the observed range by 5pp, clamped to [0, 1].
+yDomain = filtered.length
+  ? [Math.max(0, d3.min(filtered, d => d.game_win_rate) - 0.05),
+     Math.min(1, d3.max(filtered, d => d.game_win_rate) + 0.05)]
+  : [0, 1]
+
+// 20+ games is a stricter bar than the toolbar filter, so the leaderboard
+// never shows a 100% card that was played twice.
+topCards = filtered
+  .filter(d => d.games_played >= 20)
+  .sort((a, b) => d3.descending(a.game_win_rate, b.game_win_rate))
+  .slice(0, 5)
+
+rateCell = x => htl.html`<span style="color: ${
+  x > 0.55 ? "var(--bs-success)" : x < 0.45 ? "var(--bs-danger)" : "inherit"
+}; font-weight: ${x > 0.55 || x < 0.45 ? 600 : 400}">${(x * 100).toFixed(1)}%</span>`
+```
+
+# Main Content
+
+
+
+## Row {height="50%"}
+
+```{ojs}
+//| title: "Card Performance: Win Rate vs Games Played"
+Plot.plot({
+  marginLeft: 70,
+  marginBottom: 50,
+  style: {fontSize: "13px"},
+  x: {label: "Games Played", grid: true, nice: true},
+  y: {
+    label: "Game Win Rate",
+    labelArrow: "none",
+    domain: yDomain,
+    tickFormat: ".0%",
+    grid: true
+  },
+  color: {
+     type: "linear",
+    scheme: "RdYlGn",
+    domain: yDomain,
+    pivot: 0.5,
+    legend: true,
+    label: "Win Rate",
+    tickFormat: ".0%"
+  },
+  r: {range: [3, 16]},
+  marks: [
+    Plot.ruleY([0.5], {
+      stroke: "gray", strokeDasharray: "4,4", strokeOpacity: 0.6
+    }),
+    Plot.dot(filtered, {
+      x: "games_played",
+      y: "game_win_rate",
+      r: "games_played",
+      fill: "game_win_rate",
+      stroke: "white",
+      strokeWidth: 0.75,
+      fillOpacity: 0.8,
+      channels: {Card: "card_name"},
+      tip: {format: {Card: true, x: ",.0f", y: ".1%", r: false, fill: false}}
+    })
+  ]
+})
+```
+
+## Row {height="35%"}
+
+```{ojs}
+//| title: "Top Performing Cards (20+ Games)"
+topCards.length === 0
+  ? html`<p class="text-muted">No cards with sufficient games played.</p>`
+  : html`<div style="display: flex; flex-direction: column; gap: 8px;">
+      ${topCards.map(d => html`
+        <div style="padding: 10px 14px;
+                    background: var(--bs-tertiary-bg);
+                    border-left: 4px solid var(--bs-success);
+                    border-radius: 5px;">
+          <div style="font-weight: 600; margin-bottom: 2px;">${d.card_name}</div>
+          <div>
+            <span style="font-size: 22px; font-weight: 700; color: var(--bs-success);">
+              ${(d.game_win_rate * 100).toFixed(1)}%
+            </span>
+            <span style="font-size: 13px; opacity: 0.7;"> (${d.games_played} games)</span>
+          </div>
+        </div>`)}
+    </div>`
+```
+
+```{ojs}
+//| title: "Detailed Card Statistics"
+Inputs.table(filtered, {
+  columns: ["season_id", "card_name", "games_won", "games_played", "game_win_rate"],
+  header: {
+    season_id: "Season",
+    card_name: "Card Name",
+    games_won: "Games Won",
+    games_played: "Games Played",
+    game_win_rate: "Game Win Rate"
+  },
+  format: {game_win_rate: rateCell},
+  align: {games_won: "right", games_played: "right", game_win_rate: "right"},
+  sort: "games_played",
+  reverse: true,
+  rows: 20,
+  layout: "auto"
+})
+```

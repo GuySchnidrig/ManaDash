@@ -1,0 +1,263 @@
+---
+title: "Archetypes"
+format:
+  dashboard:
+    include-before-body:
+      text: |
+          <style>
+          #quarto-dashboard-header { display: none !important; }
+          .quarto-dashboard #quarto-content,
+          .quarto-dashboard .quarto-dashboard-content,
+          .quarto-dashboard .bslib-page-dashboard {
+            padding-top: 0 !important;
+            margin-top: 0 !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+          }
+          .quarto-dashboard .toolbar,
+          .quarto-dashboard .card.toolbar {
+            margin-top: 0 !important;
+            border-top: 0 !important;
+            border-top-left-radius: 0 !important;
+            border-top-right-radius: 0 !important;
+          }
+          </style>
+engine: jupyter
+execute:
+  echo: false
+---
+
+## {.toolbar }
+
+```{python}
+#| output: false
+#| echo: false
+
+import sys, os
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "..")))
+from src.backend.backend_functions import *
+
+initialize_data()
+_, archetype_color_map, decktype_color_map = get_color_maps()
+
+decks_with_standings = get_decks_with_standings()
+
+# Adjust if your output_*.csv files live elsewhere.
+DATA_DIR = os.path.abspath(os.path.join(os.getcwd(), "..", "data"))
+
+
+def counts_by_season(df, category, out_col):
+    """Distinct deck count per (season, category), plus a 'Season-All' total."""
+    per_season = df.groupby(["season_id", category], as_index=False).agg(
+        **{out_col: ("deck_id", "nunique")}
+    )
+    overall = df.groupby(category, as_index=False).agg(
+        **{out_col: ("deck_id", "nunique")}
+    )
+    overall.insert(0, "season_id", "Season-All")
+    return pd.concat([per_season, overall], ignore_index=True)
+
+
+def winrate_by_season(df, category, played, won, min_played, rate_col):
+    """Aggregate wins/plays per (season, category) and derive a win rate."""
+    out = (
+        df[df[played] >= min_played]
+        .groupby(["season_id", category], as_index=False)
+        .agg(**{played: (played, "sum"), won: (won, "sum")})
+    )
+    out[rate_col] = out[won] / out[played]
+    return out
+
+
+archetype_counts_by_season = counts_by_season(
+    decks_with_standings, "archetype", "arche_types_count"
+)
+decktype_counts_by_season = counts_by_season(
+    decks_with_standings, "decktype", "deck_types_count"
+)
+
+archetype_game_winrate_by_season = winrate_by_season(
+    get_data("archetype_game_winrate"),
+    "archetype", "games_played", "games_won", 20, "game_winrate",
+)
+decktype_game_winrate_by_season = winrate_by_season(
+    get_data("decktype_game_winrate"),
+    "decktype", "games_played", "games_won", 20, "game_winrate",
+)
+archetype_match_winrate_by_season = winrate_by_season(
+    get_data("archetype_match_winrate"),
+    "archetype", "matches_played", "matches_won", 5, "match_win_rate",
+)
+decktype_match_winrate_by_season = winrate_by_season(
+    get_data("decktype_match_winrate"),
+    "decktype", "matches_played", "matches_won", 5, "match_win_rate",
+)
+
+strength_path = os.path.join(DATA_DIR, "output_archetype_strength_empirical.csv")
+if not os.path.exists(strength_path):
+    raise FileNotFoundError(strength_path)
+
+archetype_strength = pd.read_csv(strength_path)
+assert "season_id" in archetype_strength.columns, (
+    f"Unexpected columns: {list(archetype_strength.columns)}"
+)
+
+tables = [
+    archetype_counts_by_season,
+    decktype_counts_by_season,
+    archetype_game_winrate_by_season,
+    decktype_game_winrate_by_season,
+    archetype_match_winrate_by_season,
+    decktype_match_winrate_by_season,
+    archetype_strength,
+]
+
+# 'Season-All' is a precomputed aggregate row in the source data; pin it first.
+seasons = sorted({s for t in tables for s in t["season_id"].unique()})
+if "Season-All" in seasons:
+    seasons.remove("Season-All")
+    seasons.insert(0, "Season-All")
+
+ojs_define(
+    seasons=seasons,
+    archetype_counts_by_season=archetype_counts_by_season,
+    decktype_counts_by_season=decktype_counts_by_season,
+    archetype_game_winrate_by_season=archetype_game_winrate_by_season,
+    decktype_game_winrate_by_season=decktype_game_winrate_by_season,
+    archetype_match_winrate_by_season=archetype_match_winrate_by_season,
+    decktype_match_winrate_by_season=decktype_match_winrate_by_season,
+    archetype_strength=archetype_strength,
+    archetype_color_map=archetype_color_map,
+    decktype_color_map=decktype_color_map,
+)
+```
+
+
+
+```{ojs}
+//| panel: input
+viewof season = Inputs.select(seasons, {
+  label: "Season",
+  value: seasons[0]
+})
+```
+
+
+
+
+```{ojs}
+//| output: false
+archetypeCountsData = transpose(archetype_counts_by_season)
+decktypeCountsData = transpose(decktype_counts_by_season)
+archetypeGameWinData = transpose(archetype_game_winrate_by_season)
+decktypeGameWinData = transpose(decktype_game_winrate_by_season)
+archetypeMatchWinData = transpose(archetype_match_winrate_by_season)
+decktypeMatchWinData = transpose(decktype_match_winrate_by_season)
+archetypeStrengthData = transpose(archetype_strength)
+```
+
+```{ojs}
+//| output: false
+// Filters to the selected season, sorts descending by `y`, optionally keeps the
+// top `top` rows, and draws a bar chart. `rule` adds a reference line: pass
+// `true` for the 50% line, or any number (0 included) for a custom baseline.
+// Note the `null` default -- `rule: 0` is falsy, so a boolean default would
+// silently drop the zero line on diverging charts.
+function barChart(data, {x, y, yLabel, colors, top, rule = null, yMin,
+                        height = 700, fontSize = 28, wrap = true} = {}) {
+  const rows = data
+    .filter(d => d.season_id === season)
+    .sort((a, b) => d3.descending(a[y], b[y]))
+    .slice(0, top ?? Infinity);
+
+  const label = s => String(s).replace(/[_\s]+/g, "\n");
+  const lines = wrap ? d3.max(rows, d => label(d[x]).split("\n").length) : 1;
+  const rotate = wrap ? 0 : (rows.length > 12 ? -45 : 0);
+
+  return Plot.plot({
+    width,
+    height,
+    marginBottom: rotate ? height * 0.31
+                : wrap ? fontSize * 1.2 * lines + 24
+                : height * 0.16,
+    marginLeft: fontSize * 2.5,
+    style: {fontSize: `${fontSize}px`},
+    x: {
+      label: null,
+      domain: rows.map(d => d[x]),
+      ticks: rows.map(d => d[x]),
+      tickFormat: wrap ? label : undefined,
+      tickRotate: rotate,
+      tickPadding: 8
+    },
+    y: {
+      label: yLabel,
+      labelArrow: "none",
+      labelAnchor: "center",
+      labelOffset: fontSize * 2.5,
+      ticks: 5,
+      grid: true,
+      domain: yMin === undefined ? undefined : [yMin, d3.max(rows, d => d[y])]
+    },
+    color: {domain: Object.keys(colors), range: Object.values(colors)},
+    marks: [
+      Plot.barY(rows, {x, y, fill: x, tip: true}),
+      rule != null ? Plot.ruleY([rule === true ? 0.5 : rule], {
+        stroke: "gray", strokeDasharray: "4,4", strokeOpacity: 0.5
+      }) : null
+    ]
+  });
+}
+```
+
+# Main Content
+
+## Column {height="50%"}
+
+```{ojs}
+//| title: "Archetypes"
+barChart(archetypeCountsData, {
+  x: "archetype",
+  y: "arche_types_count",
+  yLabel: "Count",
+  colors: archetype_color_map,
+
+})
+```
+
+```{ojs}
+//| title: "Win Rate Lift vs. Field Average"
+barChart(archetypeStrengthData, {
+  x: "archetype",
+  y: "archetype_win_rate_lift_pct",
+  yLabel: "Lift (% points)",
+  colors: archetype_color_map,
+  rule: 0,
+
+})
+```
+
+## Column {height="50%"}
+
+```{ojs}
+//| title: "Winning Archetypes (20+ Games)"
+barChart(archetypeGameWinData, {
+  x: "archetype",
+  y: "game_winrate",
+  yLabel: "Game Win Rate",
+  colors: archetype_color_map,
+  rule: true
+})
+```
+
+```{ojs}
+//| title: "Winning Archetypes by Match (5+ Matches)"
+barChart(archetypeMatchWinData, {
+  x: "archetype",
+  y: "match_win_rate",
+  yLabel: "Match Win Rate",
+  colors: archetype_color_map,
+  rule: true
+})
+```

@@ -1,0 +1,392 @@
+---
+title: "Card Impact"
+format:
+  dashboard:
+    include-before-body:
+      text: |
+          <style>
+          #quarto-dashboard-header { display: none !important; }
+          .quarto-dashboard #quarto-content,
+          .quarto-dashboard .quarto-dashboard-content,
+          .quarto-dashboard .bslib-page-dashboard {
+            padding-top: 0 !important;
+            margin-top: 0 !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+          }
+          .quarto-dashboard .toolbar,
+          .quarto-dashboard .card.toolbar {
+            margin-top: 0 !important;
+            border-top: 0 !important;
+            border-top-left-radius: 0 !important;
+            border-top-right-radius: 0 !important;
+          }
+          </style>
+engine: jupyter
+execute:
+  echo: false
+---
+
+## {.toolbar }
+
+```{python}
+#| output: false
+#| echo: false
+
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+# The GLM is fit once over all seasons, so this page deliberately has no
+# season selector -- see the note in the Detailed Estimates card.
+CANDIDATE_PATHS = [
+    Path("../data/output_glm_only.csv"),
+    Path("../output_glm_only.csv"),
+    Path("data/output_glm_only.csv"),
+    Path("output_glm_only.csv"),
+]
+csv_path = next((p for p in CANDIDATE_PATHS if p.exists()), None)
+if csv_path is None:
+    raise FileNotFoundError(
+        "output_glm_only.csv not found. Tried: "
+        + ", ".join(str(p) for p in CANDIDATE_PATHS)
+    )
+
+raw = pd.read_csv(csv_path)
+
+# Wide -> long on the model version. Doing this in pandas rather than OJS keeps
+# the reactive layer to a single `model` filter instead of 3x column switching.
+METRIC_MAP = {
+    "coef": "coef",
+    "se": "se",
+    "z": "z",
+    "p": "p",
+    "or": "odds_ratio",
+    "or_lower": "ci_lower",
+    "or_upper": "ci_upper",
+    "aic": "aic",
+    "separation": "separation",
+    "p_adj": "p_adj",
+    "significant_raw": "sig_raw",
+    "significant_fdr": "sig_fdr",
+    "win_rate_lift_pct": "lift_pct",
+    "win_rate_lift_mean_pct": "lift_mean_pct",
+    "win_rate_lift_std": "lift_std",
+    "win_rate_lift_mean_std": "lift_mean_std",
+}
+
+SHARED = ["card_id", "card_name", "n_games", "confidence", "or_mean", "or_cv"]
+
+MODELS = ["v0", "v1", "v2"]
+
+frames = []
+for v in MODELS:
+    rename = {f"{v}_{src}": dst for src, dst in METRIC_MAP.items()}
+    missing = [c for c in rename if c not in raw.columns]
+    if missing:
+        raise KeyError(f"Missing expected columns for model {v}: {missing}")
+    part = raw[SHARED + list(rename)].rename(columns=rename)
+    part.insert(0, "model", v)
+    frames.append(part)
+
+glm = pd.concat(frames, ignore_index=True)
+
+# Per-card best model by AIC, computed here because the CSV stores best_aic as a
+# value rather than a label.
+aic_wide = raw.set_index("card_name")[[f"{v}_aic" for v in MODELS]]
+best_model = aic_wide.idxmin(axis=1).str.replace("_aic", "", regex=False)
+glm["best_model"] = glm["card_name"].map(best_model)
+glm["is_best"] = glm["model"] == glm["best_model"]
+
+# Separated fits produce astronomically wide CIs; keep the raw values in the
+# table but give the plots something finite to work with.
+glm = glm.replace([np.inf, -np.inf], np.nan)
+glm["neg_log10_p"] = -np.log10(glm["p"].clip(lower=1e-300))
+glm["abs_coef"] = glm["coef"].abs()
+
+float_cols = glm.select_dtypes("float").columns
+glm[float_cols] = glm[float_cols].round(6)
+
+for col in ("separation", "sig_raw", "sig_fdr", "is_best"):
+    glm[col] = glm[col].astype(bool)
+
+# NaN is not valid JSON; convert to None so OJS receives nulls.
+glm = glm.astype(object).where(pd.notna(glm), None)
+
+model_labels = {
+    "v0": "v0 - base",
+    "v1": "v1 - + covariates",
+    "v2": "v2 - full",
+}
+
+ojs_define(
+    models=MODELS,
+    model_labels=model_labels,
+    n_cards=int(raw["card_name"].nunique()),
+    # NB: do not name this `cards` -- that shadows the OJS stdlib `cards`
+    # reactive that Quarto uses to autosize Plot.plot() calls in dashboards.
+    glm_rows=glm,
+)
+```
+
+```{ojs}
+//| panel: input
+viewof modelVersion = Inputs.select(models, {
+  label: "Model",
+  value: "v1",
+  format: m => model_labels[m] ?? m
+})
+
+viewof minGames = Inputs.number([0, Infinity], {
+  label: "Min Games",
+  value: 20,
+  step: 1
+})
+
+viewof sigFilter = Inputs.select(["All", "p < 0.05", "FDR significant"], {
+  label: "Significance",
+  value: "All"
+})
+
+viewof hideSeparated = Inputs.toggle({
+  label: "Hide separated fits",
+  value: true
+})
+
+viewof cardSearch = Inputs.text({
+  label: "Search Card",
+  placeholder: "Search card...",
+  submit: false
+})
+```
+
+```{ojs}
+//| output: false
+glmData = transpose(glm_rows)
+
+// The number input yields null when cleared; treat that as no minimum.
+filtered = {
+  const query = (cardSearch ?? "").trim().toLowerCase();
+  const floor = minGames ?? 0;
+  return glmData.filter(d =>
+    d.model === modelVersion &&
+    d.n_games >= floor &&
+    (!hideSeparated || !d.separation) &&
+    (sigFilter === "All" ||
+     (sigFilter === "p < 0.05" && d.sig_raw) ||
+     (sigFilter === "FDR significant" && d.sig_fdr)) &&
+    (query === "" || String(d.card_name).toLowerCase().includes(query))
+  );
+}
+
+// Log axis cannot render a zero or negative bound, and a separated fit can push
+// the upper bound into the thousands. Clamp for display only.
+CI_FLOOR = 0.05
+CI_CEIL = 20
+estimable = filtered.filter(d => d.coef != null && d.ci_lower != null && d.ci_upper != null)
+
+forestData = estimable
+  .slice()
+  .sort((a, b) => d3.descending(a.abs_coef, b.abs_coef))
+  .slice(0, 25)
+  .map(d => ({
+    ...d,
+    lo: Math.max(CI_FLOOR, Math.min(CI_CEIL, d.ci_lower)),
+    hi: Math.max(CI_FLOOR, Math.min(CI_CEIL, d.ci_upper)),
+    clipped: d.ci_lower < CI_FLOOR || d.ci_upper > CI_CEIL
+  }))
+  .sort((a, b) => d3.descending(a.coef, b.coef))
+
+nSigRaw = filtered.filter(d => d.sig_raw).length
+nSigFdr = filtered.filter(d => d.sig_fdr).length
+nSeparated = glmData.filter(d => d.model === modelVersion && d.separation).length
+medianLift = estimable.length ? d3.median(estimable, d => d.lift_pct) : 0
+
+kpi = (label, value, note) => html`<div style="flex: 1; padding: 8px 14px;
+    background: var(--bs-tertiary-bg); border-radius: 5px;">
+  <div style="font-size: 12px; opacity: 0.7; text-transform: uppercase;
+              letter-spacing: 0.03em;">${label}</div>
+  <div style="font-size: 24px; font-weight: 700; line-height: 1.2;">${value}</div>
+  <div style="font-size: 12px; opacity: 0.6;">${note}</div>
+</div>`
+
+pCell = x => x == null
+  ? htl.html`<span style="opacity: 0.5;">—</span>`
+  : htl.html`<span style="color: ${x < 0.05 ? "var(--bs-success)" : "inherit"};
+      font-weight: ${x < 0.05 ? 600 : 400}">${
+        x < 0.001 ? x.toExponential(1) : x.toFixed(3)
+      }</span>`
+
+liftCell = x => x == null
+  ? htl.html`<span style="opacity: 0.5;">—</span>`
+  : htl.html`<span style="color: ${
+      x > 0 ? "var(--bs-success)" : x < 0 ? "var(--bs-danger)" : "inherit"
+    }; font-weight: 600">${x > 0 ? "+" : ""}${x.toFixed(1)}%</span>`
+
+orCell = x => x == null
+  ? htl.html`<span style="opacity: 0.5;">—</span>`
+  : htl.html`${x.toFixed(2)}`
+```
+
+# Main Content
+
+## Row {height="14%"}
+
+```{ojs}
+//| padding: 0
+html`<div style="display: flex; gap: 8px;">
+  ${kpi("Cards shown", filtered.length, `of ${n_cards} fitted`)}
+  ${kpi("p < 0.05", nSigRaw, "unadjusted")}
+  ${kpi("FDR significant", nSigFdr, "Benjamini-Hochberg")}
+  ${kpi("Median lift", `${medianLift > 0 ? "+" : ""}${medianLift.toFixed(1)}%`,
+        "win rate, current selection")}
+  ${kpi("Separated fits", nSeparated, hideSeparated ? "excluded" : "included")}
+</div>`
+```
+
+## Row {height="46%"}
+
+```{ojs}
+//| title: "Effect Size: Top 25 Cards by |coefficient| (odds ratio, 95% CI)"
+forestData.length === 0
+  ? html`<p class="text-muted">No estimable cards match the current filters.</p>`
+  : Plot.plot({
+      height: Math.max(200, forestData.length * 22 + 60),
+      marginLeft: 190,
+      marginRight: 20,
+      style: {fontSize: "12px"},
+      x: {
+        type: "log",
+        label: "Odds ratio (log scale)",
+        domain: [CI_FLOOR, CI_CEIL],
+        grid: true,
+        ticks: [0.1, 0.25, 0.5, 1, 2, 4, 10],
+        tickFormat: x => String(x)
+      },
+      y: {domain: forestData.map(d => d.card_name), label: null},
+      color: {
+        domain: ["FDR significant", "p < 0.05", "Not significant"],
+        range: ["var(--bs-success)", "var(--bs-warning)", "var(--bs-secondary)"],
+        legend: true,
+        label: null
+      },
+      marks: [
+        Plot.ruleX([1], {stroke: "gray", strokeDasharray: "4,4", strokeOpacity: 0.6}),
+        Plot.link(forestData, {
+          y: "card_name",
+          x1: "lo",
+          x2: "hi",
+          stroke: d => d.sig_fdr ? "FDR significant"
+            : d.sig_raw ? "p < 0.05" : "Not significant",
+          strokeWidth: 2,
+          strokeOpacity: 0.7
+        }),
+        Plot.dot(forestData, {
+          y: "card_name",
+          x: "odds_ratio",
+          fill: d => d.sig_fdr ? "FDR significant"
+            : d.sig_raw ? "p < 0.05" : "Not significant",
+          r: 5,
+          stroke: "var(--bs-body-bg)",
+          strokeWidth: 1,
+          channels: {
+            Card: "card_name",
+            Games: "n_games",
+            OR: d => d.odds_ratio.toFixed(2),
+            CI: d => `${d.ci_lower.toFixed(2)} – ${d.ci_upper.toFixed(2)}`,
+            p: d => d.p.toExponential(1),
+            "CI clipped": d => d.clipped ? "yes" : "no"
+          },
+          tip: {format: {x: false, y: false, fill: false, r: false}}
+        })
+      ]
+    })
+```
+
+```{ojs}
+//| title: "Volcano: Effect vs Evidence"
+estimable.length === 0
+  ? html`<p class="text-muted">No estimable cards match the current filters.</p>`
+  : Plot.plot({
+      marginLeft: 60,
+      marginBottom: 45,
+      style: {fontSize: "12px"},
+      x: {label: "Coefficient (log odds)", grid: true, nice: true},
+      y: {label: "−log₁₀(p)", grid: true, nice: true},
+      r: {range: [2, 12]},
+      color: {
+        domain: ["FDR significant", "p < 0.05", "Not significant"],
+        range: ["var(--bs-success)", "var(--bs-warning)", "var(--bs-secondary)"],
+        legend: true,
+        label: null
+      },
+      marks: [
+        Plot.ruleX([0], {stroke: "gray", strokeDasharray: "4,4", strokeOpacity: 0.6}),
+        Plot.ruleY([-Math.log10(0.05)], {
+          stroke: "gray", strokeDasharray: "2,3", strokeOpacity: 0.5
+        }),
+        Plot.dot(estimable, {
+          x: "coef",
+          y: "neg_log10_p",
+          r: "n_games",
+          fill: d => d.sig_fdr ? "FDR significant"
+            : d.sig_raw ? "p < 0.05" : "Not significant",
+          fillOpacity: 0.75,
+          stroke: "var(--bs-body-bg)",
+          strokeWidth: 0.5,
+          channels: {
+            Card: "card_name",
+            Games: "n_games",
+            Lift: d => d.lift_pct == null ? "—" : `${d.lift_pct.toFixed(1)}%`
+          },
+          tip: {format: {x: ".3f", y: false, r: false, fill: false}}
+        })
+      ]
+    })
+```
+
+## Row {height="40%"}
+
+```{ojs}
+//| title: "Detailed Estimates (pooled across all seasons)"
+Inputs.table(filtered, {
+  columns: [
+    "card_name", "n_games", "coef", "se", "odds_ratio",
+    "ci_lower", "ci_upper", "p", "p_adj", "lift_pct", "confidence", "best_model"
+  ],
+  header: {
+    card_name: "Card Name",
+    n_games: "Games",
+    coef: "Coef",
+    se: "SE",
+    odds_ratio: "OR",
+    ci_lower: "CI low",
+    ci_upper: "CI high",
+    p: "p",
+    p_adj: "p (FDR)",
+    lift_pct: "Win rate lift",
+    confidence: "Confidence",
+    best_model: "Best AIC"
+  },
+  format: {
+    coef: x => x == null ? "—" : x.toFixed(3),
+    se: x => x == null ? "—" : x.toFixed(3),
+    odds_ratio: orCell,
+    ci_lower: orCell,
+    ci_upper: orCell,
+    p: pCell,
+    p_adj: pCell,
+    lift_pct: liftCell
+  },
+  align: {
+    n_games: "right", coef: "right", se: "right", odds_ratio: "right",
+    ci_lower: "right", ci_upper: "right", p: "right", p_adj: "right",
+    lift_pct: "right"
+  },
+  sort: "abs_coef",
+  reverse: true,
+  rows: 20,
+  layout: "auto"
+})
+```

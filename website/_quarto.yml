@@ -1,0 +1,49 @@
+project:
+  type: website
+  output-dir: _site
+
+website:
+  title: "ManaDash"
+  favicon: icons/scroll-unfurled-svgrepo-com.svg
+  page-navigation: true
+  reader-mode: false
+
+  navbar:
+    logo: icons/scroll-unfurled-svgrepo-com.svg
+    logo-alt: "ManaDash logo"
+    title: "ManaDash"
+    background: dark
+    left:
+      - href: index.qmd
+        text: Home
+      - href: archetypes.qmd
+        text: Archetypes
+      - href: decktypes.qmd
+        text: Decktypes
+      - href: players.qmd
+        text: Players
+      - href: player_elo.qmd
+        text: Elo
+      - href: deckviewer.qmd
+        text: Deck Viewer
+      - href: cards.qmd
+        text: Cards Stats
+      - href: card_groups.qmd
+        text: Card Groups
+      - href: card_impact.qmd
+        text: Card Impact
+      - href: standings.qmd
+        text: Standings
+    right:
+      - icon: github
+        href: https://github.com/GuySchnidrig/ManaDash/ 
+        aria-label: GitHub
+
+  page-footer:
+    center: "ManaDash — Vintage Cube Analysis"
+
+format:
+  dashboard:
+    theme:
+      light: [sandstone, custom.scss]
+      dark:  [darkly, custom.scss, custom-dark.scss]

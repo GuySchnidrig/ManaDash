@@ -1,0 +1,457 @@
+---
+title: "Players"
+format:
+  dashboard:
+    scrolling: true
+    include-before-body:
+      text: |
+        <style>#quarto-dashboard-header { display: none }</style>
+engine: jupyter
+execute:
+  echo: false
+---
+
+## {.sidebar width="150px"}
+
+```{python}
+#| output: false
+#| echo: false
+
+import sys, os
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "..")))
+from src.backend.backend_functions import *
+
+initialize_data()
+player_color_map, archetype_color_map, decktype_color_map = get_color_maps()
+
+
+def pick(df, cols):
+    """Keep only displayed columns; keeps the ojs_define payload small."""
+    if df is None or not hasattr(df, "columns"):
+        raise TypeError(f"expected DataFrame, got {type(df)}")
+    keep = [c for c in cols if c in df.columns]
+    if not keep:
+        raise KeyError(f"none of {cols} present; available: {list(df.columns)}")
+    missing = [c for c in cols if c not in df.columns]
+    if missing:
+        print(f"[pick] missing (skipped): {missing}", file=sys.stderr)
+    return df[keep].copy()
+
+
+decks_with_standings = get_decks_with_standings()
+standings = get_vintage_standings()
+
+
+def counts_by_player(df, category, out_col):
+    """Distinct deck count per (season, player, category), plus a Season-All roll-up.
+    decks_with_standings is a merge of drafted_decks + standings, so it carries
+    only real seasons -- the aggregate has to be built here."""
+    per_season = df.groupby(["season_id", "player", category], as_index=False).agg(
+        **{out_col: ("deck_id", "nunique")}
+    )
+    all_seasons = df.groupby(["player", category], as_index=False).agg(
+        **{out_col: ("deck_id", "nunique")}
+    )
+    all_seasons["season_id"] = "Season-All"
+    return pd.concat([all_seasons, per_season], ignore_index=True)
+
+
+player_archetype_counts = counts_by_player(
+    decks_with_standings, "archetype", "arche_types_count"
+)
+player_decktype_counts = counts_by_player(
+    decks_with_standings, "decktype", "deck_types_count"
+)
+
+
+# --- player_stats: derived; there is no player_stats CSV ---------------------
+# NB: games_played here means drafts attended, not MTG games (standings carries
+# its own games_played column meaning the latter).
+def _agg_stats(df, keys):
+    out = df.groupby(keys, as_index=False).agg(
+        games_played=("draft_id", "nunique"),
+        total_wins=("standing", lambda s: (s == 1).sum()),
+        total_points=("match_points", "sum"),
+        average_omp=("OMP", "mean"),
+        average_gwp=("GWP", "mean"),
+        average_ogp=("OGP", "mean"),
+    )
+    out["avg_points_per_draft"] = out["total_points"] / out["games_played"]
+    return out
+
+
+def _mode_by(df, col, out_col, keys):
+    """Most common archetype/decktype, counted over distinct decks."""
+    counts = df.groupby(keys + [col], as_index=False).agg(n=("deck_id", "nunique"))
+    return (counts.loc[counts.groupby(keys)["n"].idxmax(), keys + [col]]
+                  .rename(columns={col: out_col}))
+
+
+def _build(keys):
+    out = _agg_stats(standings, keys)
+    for col, name in [("archetype", "most_common_archetype"),
+                      ("decktype", "most_common_decktype")]:
+        out = out.merge(_mode_by(decks_with_standings, col, name, keys),
+                        on=keys, how="left")
+    return out
+
+
+_all = _build(["player"])
+_all["season_id"] = "Season-All"
+
+player_stats = pick(
+    pd.concat([_all, _build(["season_id", "player"])], ignore_index=True),
+    ["season_id", "player", "games_played", "total_wins", "total_points",
+     "avg_points_per_draft", "most_common_archetype", "most_common_decktype",
+     "average_omp", "average_gwp", "average_ogp"],
+)
+# ---------------------------------------------------------------------------
+
+player_vs_stats = pick(
+    get_vs_player_game_and_match_winrate(),
+    ["season_id", "player", "opponent", "games_played_vs", "games_won_vs",
+     "game_win_rate_vs", "matches_played_vs", "matches_won_vs", "match_win_rate_vs"],
+)
+most_played_cards = pick(
+    get_most_played_card_by_player(),
+    ["season_id", "player", "card_name", "pick_count"],
+)
+# 'archtype' is the legacy (misspelled) column name; keep both so either survives.
+player_archetype_winrate = pick(
+    get_player_archetype_winrates(),
+    ["season_id", "player", "archetype", "archtype", "games_won", "games_played",
+     "game_win_rate", "matches_played", "matches_won", "match_win_rate"],
+)
+player_decktype_winrate = pick(
+    get_player_decktype_winrates(),
+    ["season_id", "player", "decktype", "games_won", "games_played",
+     "game_win_rate", "matches_played", "matches_won", "match_win_rate"],
+)
+player_card_winrate = pick(
+    get_combined_winrates_per_season(),
+    ["season_id", "player", "card_name", "num_drafts_with_card", "games_won",
+     "games_played", "game_win_rate", "matches_played", "matches_won",
+     "match_win_rate"],
+)
+
+tables = [
+    player_archetype_counts,
+    player_decktype_counts,
+    player_stats,
+    player_vs_stats,
+    most_played_cards,
+    player_archetype_winrate,
+    player_decktype_winrate,
+    player_card_winrate,
+]
+
+players = sorted(decks_with_standings["player"].dropna().unique())
+
+# 'Season-All' is a precomputed aggregate row in the source data; pin it first.
+seasons = sorted({s for t in tables for s in t.get("season_id", pd.Series(dtype=str)).unique()})
+if "Season-All" in seasons:
+    seasons.remove("Season-All")
+    seasons.insert(0, "Season-All")
+
+ojs_define(
+    players=players,
+    seasons=seasons,
+    player_archetype_counts=player_archetype_counts,
+    player_decktype_counts=player_decktype_counts,
+    player_stats=player_stats,
+    player_vs_stats=player_vs_stats,
+    most_played_cards=most_played_cards,
+    player_archetype_winrate=player_archetype_winrate,
+    player_decktype_winrate=player_decktype_winrate,
+    player_card_winrate=player_card_winrate,
+    archetype_color_map=archetype_color_map,
+    decktype_color_map=decktype_color_map,
+)
+```
+
+```{ojs}
+//| panel: input
+viewof player = Inputs.select(players, {
+  label: "Player",
+  value: players[0]
+})
+```
+
+```{ojs}
+//| panel: input
+viewof season = Inputs.select(seasons, {
+  label: "Season",
+  value: seasons[0]
+})
+```
+# Main Content
+
+```{ojs}
+//| output: false
+archetypeCountsData = transpose(player_archetype_counts)
+decktypeCountsData = transpose(player_decktype_counts)
+playerStatsData = transpose(player_stats)
+playerVsData = transpose(player_vs_stats)
+mostPlayedCardsData = transpose(most_played_cards)
+archetypeWinrateData = transpose(player_archetype_winrate)
+decktypeWinrateData = transpose(player_decktype_winrate)
+cardWinrateData = transpose(player_card_winrate)
+```
+
+```{ojs}
+//| output: false
+// Keeps rows for the selected player; season is only applied to tables that
+// actually carry a season_id column.
+function forSelection(rows) {
+  return rows.filter(d =>
+    d.player === player && (d.season_id === undefined || d.season_id === season)
+  );
+}
+
+pct = d => (d == null || isNaN(d)) ? "" : (d * 100).toFixed(1) + "%"
+pctRaw = d => (d == null || isNaN(d)) ? "" : d.toFixed(1) + "%"
+num = d => (d == null || isNaN(d)) ? "" : d3.format(".2f")(d)
+```
+
+```{ojs}
+//| output: false
+// Sorts descending by `y`, optionally keeps the top `top` rows, and draws a bar
+// chart. `rule` adds the 50% reference line.
+function barChart(data, {x, y, yLabel, colors, top, rule = false, yMin,
+                        height = 700, fontSize = 28, wrap = true} = {}) {
+  const rows = data
+    .filter(d => d.season_id === season)
+    .sort((a, b) => d3.descending(a[y], b[y]))
+    .slice(0, top ?? Infinity);
+
+  const label = s => String(s).replace(/[_\s]+/g, "\n");
+  const lines = wrap ? d3.max(rows, d => label(d[x]).split("\n").length) : 1;
+  const rotate = wrap ? 0 : (rows.length > 12 ? -45 : 0);
+
+  return Plot.plot({
+    width,
+    height,
+    marginBottom: rotate ? height * 0.31
+                : wrap ? fontSize * 1.2 * lines + 24
+                : height * 0.16,
+    marginLeft: fontSize * 2.5,
+    style: {fontSize: `${fontSize}px`},
+    x: {
+      label: null,
+      domain: rows.map(d => d[x]),
+      ticks: rows.map(d => d[x]),
+      tickFormat: wrap ? label : undefined,
+      tickRotate: rotate,
+      tickPadding: 8
+    },
+    y: {
+      label: yLabel,
+      labelArrow: "none",
+      labelAnchor: "center",
+      labelOffset: fontSize * 2.5,
+      ticks: 5,
+      grid: true,
+      domain: yMin === undefined ? undefined : [yMin, d3.max(rows, d => d[y])]
+    },
+    color: {domain: Object.keys(colors), range: Object.values(colors)},
+    marks: [
+      Plot.barY(rows, {x, y, fill: x, tip: true}),
+      rule ? Plot.ruleY([0.5], {
+        stroke: "gray", strokeDasharray: "4,4", strokeOpacity: 0.5
+      }) : null
+    ]
+  });
+}
+```
+
+```{ojs}
+//| output: false
+// Replaces the Dash DataTable: a search box plus a sortable, paged table.
+function searchTable(rows, options = {}) {
+  const search = Inputs.search(rows, {placeholder: "Filter rows…"});
+  const out = document.createElement("div");
+
+  const render = () => out.replaceChildren(
+    Inputs.table(search.value, {layout: "auto", ...options})
+  );
+
+  search.addEventListener("input", render);
+  render();
+
+  const wrapper = document.createElement("div");
+  wrapper.style.width = "100%";
+  wrapper.style.height = "100%";
+  wrapper.style.display = "flex";
+  wrapper.style.flexDirection = "column";
+
+  out.style.flex = "1";
+  out.style.minHeight = "0";
+  out.style.overflow = "auto";
+
+  wrapper.append(search, out);
+  return wrapper;
+}
+```
+
+
+### Column {height="100%"}
+### Row {height="100%"}
+
+```{ojs}
+//| title: "Archetypes"
+barChart(forSelection(archetypeCountsData), {
+  x: "archetype",
+  y: "arche_types_count",
+  yLabel: "Count",
+  colors: archetype_color_map
+})
+```
+
+
+
+```{ojs}
+//| title: "Decktypes"
+barChart(forSelection(decktypeCountsData), {
+  x: "decktype",
+  y: "deck_types_count",
+  yLabel: "Count",
+  colors: decktype_color_map
+})
+```
+
+
+
+### Column {height="100%"}
+## Row {.tabset}
+
+```{ojs}
+//| title: "Player Statistics Overview"
+searchTable(forSelection(playerStatsData), {
+  header: {
+    season_id: "Season",
+    player: "Player",
+    games_played: "Drafts Attended",
+    total_wins: "Drafts Won",
+    total_points: "Total Points",
+    avg_points_per_draft: "Average Points",
+    most_common_archetype: "Most Common Archetype",
+    most_common_decktype: "Most Common Decktype",
+    average_omp: "Average OMP",
+    average_gwp: "Average GWP",
+    average_ogp: "Average OGP"
+  },
+  format: {
+    avg_points_per_draft: num,
+    average_omp: pctRaw,
+    average_gwp: pctRaw,
+    average_ogp: pctRaw
+  }
+})
+```
+
+
+```{ojs}
+//| title: "Player Versus Overview"
+searchTable(forSelection(playerVsData), {
+  header: {
+    season_id: "Season",
+    player: "Player",
+    opponent: "Opponent",
+    games_played_vs: "Games Played VS",
+    games_won_vs: "Games Won VS",
+    game_win_rate_vs: "Game Win Rate",
+    matches_played_vs: "Matches Played",
+    matches_won_vs: "Matches Won",
+    match_win_rate_vs: "Match Win Rate"
+  },
+  format: {
+    game_win_rate_vs: pct,
+    match_win_rate_vs: pct
+  }
+})
+```
+
+
+
+```{ojs}
+//| title: "Most Played Cards"
+searchTable(forSelection(mostPlayedCardsData), {
+  header: {
+    season_id: "Season",
+    player: "Player",
+    card_name: "Card Name",
+    pick_count: "Pick Count"
+  }
+})
+```
+
+
+
+```{ojs}
+//| title: "Archetype Winrates"
+searchTable(forSelection(archetypeWinrateData), {
+  header: {
+    season_id: "Season",
+    player: "Player",
+    archetype: "Archetype",
+    archtype: "Archetype",
+    games_won: "Games Won",
+    games_played: "Games Played",
+    game_win_rate: "Game Win Rate",
+    matches_played: "Matches Played",
+    matches_won: "Matches Won",
+    match_win_rate: "Match Win Rate"
+  },
+  format: {
+    game_win_rate: pct,
+    match_win_rate: pct
+  }
+})
+```
+
+
+
+```{ojs}
+//| title: "Decktype Winrates"
+searchTable(forSelection(decktypeWinrateData), {
+  header: {
+    season_id: "Season",
+    player: "Player",
+    decktype: "Decktype",
+    games_won: "Games Won",
+    games_played: "Games Played",
+    game_win_rate: "Game Win Rate",
+    matches_played: "Matches Played",
+    matches_won: "Matches Won",
+    match_win_rate: "Match Win Rate"
+  },
+  format: {
+    game_win_rate: pct,
+    match_win_rate: pct
+  }
+})
+```
+
+
+```{ojs}
+//| title: "Card Winrate Per Season"
+searchTable(forSelection(cardWinrateData), {
+  header: {
+    season_id: "Season",
+    player: "Player",
+    card_name: "Card Name",
+    num_drafts_with_card: "Drafts with Card",
+    games_won: "Games Won",
+    games_played: "Games Played",
+    game_win_rate: "Game Win Rate",
+    matches_played: "Matches Played",
+    matches_won: "Matches Won",
+    match_win_rate: "Match Win Rate"
+  },
+  format: {
+    game_win_rate: pct,
+    match_win_rate: pct
+  }
+})
+```
