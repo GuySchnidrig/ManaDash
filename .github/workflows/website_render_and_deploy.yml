@@ -43,6 +43,16 @@ jobs:
 
       - name: Render Quarto site
         run: uv run quarto render website
+      
+      - name: Inspect render output
+        run: |
+          ls -la website/_quarto.yml || echo "NO _quarto.yml ON RUNNER"
+          grep -c "quarto-dashboard" website/_site/index.html || echo "NOT A DASHBOARD"
+          grep -o 'href="[^"]*\.css"' website/_site/index.html | head || true
+          ls website/_site | head -20
+          ls website/_site/site_libs 2>/dev/null | head
+          git ls-files website/
+          git check-ignore -v website/_quarto.yml || echo "not ignored"
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
