@@ -37,6 +37,9 @@ jobs:
 
       - name: Install dependencies
         run: uv sync
+      
+      - name: Refresh card metadata
+        run: uv run python -m src.backend.card_images
 
       - name: Render Quarto site
         run: uv run quarto render website --to html
