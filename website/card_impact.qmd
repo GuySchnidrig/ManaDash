@@ -94,9 +94,9 @@ glm = pd.concat(frames, ignore_index=True)
 
 # Per-card best model by AIC, computed here because the CSV stores best_aic as a
 # value rather than a label.
-aic_wide = raw.set_index("card_name")[[f"{v}_aic" for v in MODELS]]
+aic_wide = raw.set_index("card_id")[[f"{v}_aic" for v in MODELS]]
 best_model = aic_wide.idxmin(axis=1).str.replace("_aic", "", regex=False)
-glm["best_model"] = glm["card_name"].map(best_model)
+glm["best_model"] = glm["card_id"].map(best_model)
 glm["is_best"] = glm["model"] == glm["best_model"]
 
 # Separated fits produce astronomically wide CIs; keep the raw values in the
@@ -128,6 +128,8 @@ ojs_define(
     # reactive that Quarto uses to autosize Plot.plot() calls in dashboards.
     glm_rows=glm,
 )
+
+
 ```
 
 ```{ojs}
