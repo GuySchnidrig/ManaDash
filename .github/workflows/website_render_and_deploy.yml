@@ -42,7 +42,7 @@ jobs:
         run: uv run python -m src.backend.card_images
 
       - name: Render Quarto site
-        run: uv run quarto render website --to html
+        run: uv run quarto render website
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
