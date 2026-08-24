@@ -165,7 +165,7 @@ archetypeStrengthData = transpose(archetype_strength)
 // Note the `null` default -- `rule: 0` is falsy, so a boolean default would
 // silently drop the zero line on diverging charts.
 function barChart(data, {x, y, yLabel, colors, top, rule = null, yMin,
-                        height = 700, fontSize = 28, wrap = true} = {}) {
+                        height = 600, fontSize = 28, wrap = true} = {}) {
   const rows = data
     .filter(d => d.season_id === season)
     .sort((a, b) => d3.descending(a[y], b[y]))
