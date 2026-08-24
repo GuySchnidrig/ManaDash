@@ -96,7 +96,15 @@ viewof season = Inputs.select(seasons, {
 })
 ```
 
-
+```{ojs}
+//| panel: input
+viewof topN = Inputs.range([1, maxPlayers], {
+  label: "Players",
+  step: 1,
+  value: Math.min(12, maxPlayers),
+  width: 130
+})
+```
 
 ```{ojs}
 //| output: false
@@ -107,6 +115,7 @@ archetypeWinData = transpose(archetype_winrate_by_season)
 playerWinData = transpose(player_winrate_by_season)
 
 totals = totalsData.find(d => d.season_id === season) ?? {}
+maxPlayers = d3.max(totalsData, d => d.total_players)
 ```
 
 
@@ -173,7 +182,7 @@ barChart(draftsAttendedData, {
   y: "drafts_played",
   yLabel: "Count",
   colors: player_color_map,
-  top: 15
+  top: topN
 })
 ```
 
@@ -184,7 +193,7 @@ barChart(draftsWonData, {
   y: "drafts_won",
   yLabel: "Drafts Won",
   colors: player_color_map,
-  top: 15
+  top: topN
 })
 ```
 
@@ -208,7 +217,7 @@ barChart(playerWinData, {
   y: "game_win_rate",
   yLabel: "Game Win Rate",
   colors: player_color_map,
-  top: 15,
+  top: topN,
   rule: true
 })
 ```
