@@ -52,6 +52,55 @@ card_stats = card_stats[
     ["season_id", "card_name", "games_played", "games_won", "game_win_rate"]
 ].sort_values("games_played", ascending=False)
 
+
+# --- model_stats: adjusted win rates from the GLMs ---------------------------
+# ManaCore card_impact_analysis.py, fit once over all seasons:
+#   v0: win ~ has_card + elo_diff               (player strength)
+#   v1: win ~ has_card + elo_diff + archetype   (+ archetype)
+# Win rate = overall game win rate + <v>_win_rate_lift_prob, the card's average
+# lift over every real game (each game predicted with and without the card,
+# keeping its actual archetype and elo_diff).
+MODELS = ["v0", "v1"]
+
+archetype_games = get_data("archetype_game_winrate")
+archetype_games = archetype_games[archetype_games["season_id"].astype(str) == "Season-All"]
+overall_win_rate = archetype_games["games_won"].sum() / archetype_games["games_played"].sum()
+
+# Games come from the raw Season-All stats so both views count the same games;
+# fall back to the model's own sample size where a card has no raw row. Joined on
+# the Scryfall id because some names appear twice (different printings).
+raw = get_data("card_game_winrate_per_season")
+raw_all = raw[raw["season_id"].astype(str) == "Season-All"]
+
+glm = get_data("output_glm_only")
+frames = []
+for v in MODELS:
+    part = glm[glm[f"{v}_win_rate_lift_prob"].notna()].copy()
+    part["game_win_rate"] = overall_win_rate + part[f"{v}_win_rate_lift_prob"]
+    part = part[part["game_win_rate"].between(0, 1)]
+    part["model"] = v
+    frames.append(part[["model", "card_id", "card_name", "n_games", "game_win_rate"]])
+
+model_stats = pd.concat(frames, ignore_index=True).merge(
+    raw_all[["scryfallId", "games_played", "games_won"]],
+    left_on="card_id", right_on="scryfallId", how="left"
+)
+model_stats["games_played"] = model_stats["games_played"].fillna(model_stats["n_games"])
+model_stats["season_id"] = "Season-All"
+model_stats = model_stats[
+    ["model", "season_id", "card_name", "games_played", "games_won", "game_win_rate"]
+]
+model_stats = model_stats.astype(object).where(pd.notna(model_stats), None)
+# ---------------------------------------------------------------------------
+
+# Current cube = the newest cube_mainboard snapshot. Matched by name so a
+# different printing of the same card still counts as in the cube.
+mainboard = get_data("cube_mainboard")
+current_cube = sorted(
+    mainboard.loc[mainboard["timestamp"] == mainboard["timestamp"].max(), "card_name"]
+    .dropna().unique()
+)
+
 # 'Season-All' is a precomputed aggregate row in the source data; pin it first.
 seasons = sorted(card_stats["season_id"].unique())
 if "Season-All" in seasons:
@@ -63,14 +112,20 @@ ojs_define(
     # NB: do not name this `cards` -- that shadows the OJS stdlib `cards`
     # reactive that Quarto uses to autosize Plot.plot() calls in dashboards.
     card_stats=card_stats,
+    model_stats=model_stats,
+    model_labels={"v0": "Player strength (v0)",
+                  "v1": "Player strength + archetype (v1)"},
+    current_cube=current_cube,
 )
 ```
 
 ```{ojs}
 //| panel: input
+// The model is pooled over all seasons, so the season is pinned while it's on.
 viewof season = Inputs.select(seasons, {
   label: "Season",
-  value: seasons[0]
+  value: seasons[0],
+  disabled: useModel
 })
 
 viewof cardSearch = Inputs.text({
@@ -79,23 +134,53 @@ viewof cardSearch = Inputs.text({
   submit: false
 })
 
+viewof inCubeOnly = Inputs.toggle({
+  label: "Only current cube",
+  value: true
+})
+
 viewof minGames = Inputs.number([0, Infinity], {
   label: "Min Games Played",
   value: 10,
   step: 1
 })
+
+// Two checkboxes that behave like radio buttons which can also both be off:
+// ticking one clears the other. Nothing ticked = raw win rate. The listener runs
+// in the capture phase, before Inputs.checkbox recomputes its value.
+viewof modelPick = {
+  const input = Inputs.checkbox(Object.keys(model_labels), {
+    label: "Adjust for",
+    value: ["v0"],
+    format: k => model_labels[k]
+  });
+  input.addEventListener("input", event => {
+    if (!event.target.checked) return;
+    for (const box of input.querySelectorAll("input[type=checkbox]")) {
+      if (box !== event.target) box.checked = false;
+    }
+  }, true);
+  return input;
+}
 ```
 
 ```{ojs}
 //| output: false
 cardsData = transpose(card_stats)
+modelData = transpose(model_stats)
+cubeSet = new Set(current_cube)
+
+modelKey = modelPick[0] ?? null
+useModel = modelKey !== null
+rateLabel = useModel ? `Win Rate (adjusted, ${modelKey})` : "Game Win Rate"
 
 // The number input yields null when cleared; treat that as no minimum.
 filtered = {
   const query = (cardSearch ?? "").trim().toLowerCase();
   const floor = minGames ?? 0;
-  return cardsData.filter(d =>
-    d.season_id === season &&
+  return (useModel ? modelData : cardsData).filter(d =>
+    (useModel ? d.model === modelKey : d.season_id === season) &&
+    (!inCubeOnly || cubeSet.has(d.card_name)) &&
     d.games_played >= floor &&
     (query === "" || String(d.card_name).toLowerCase().includes(query))
   );
@@ -111,10 +196,10 @@ yDomain = filtered.length
      Math.min(1, d3.max(filtered, d => d.game_win_rate) + 0.05)]
   : [0, 1]
 
-// 20+ games is a stricter bar than the toolbar filter, so the leaderboard
+// 100+ games is a stricter bar than the toolbar filter, so the leaderboard
 // never shows a 100% card that was played twice.
 topCards = filtered
-  .filter(d => d.games_played >= 20)
+  .filter(d => d.games_played >= 100)
   .sort((a, b) => d3.descending(a.game_win_rate, b.game_win_rate))
   .slice(0, 5)
 
@@ -137,7 +222,7 @@ Plot.plot({
   style: {fontSize: "13px"},
   x: {label: "Games Played", grid: true, nice: true},
   y: {
-    label: "Game Win Rate",
+    label: rateLabel,
     labelArrow: "none",
     domain: yDomain,
     tickFormat: ".0%",
@@ -175,7 +260,7 @@ Plot.plot({
 ## Row {height="35%"}
 
 ```{ojs}
-//| title: "Top Performing Cards (20+ Games)"
+//| title: "Top Performing Cards (100+ Games)"
 topCards.length === 0
   ? html`<p class="text-muted">No cards with sufficient games played.</p>`
   : html`<div style="display: flex; flex-direction: column; gap: 8px;">
@@ -198,17 +283,19 @@ topCards.length === 0
 ```{ojs}
 //| title: "Detailed Card Statistics"
 Inputs.table(filtered, {
-  columns: ["season_id", "card_name", "games_won", "games_played", "game_win_rate"],
+  // Model rates are pooled over all seasons, so the Season column adds nothing.
+  columns: [...(useModel ? [] : ["season_id"]),
+            "card_name", "games_won", "games_played", "game_win_rate"],
   header: {
     season_id: "Season",
     card_name: "Card Name",
     games_won: "Games Won",
     games_played: "Games Played",
-    game_win_rate: "Game Win Rate"
+    game_win_rate: useModel ? `Win Rate (${modelKey})` : "Game Win Rate"
   },
-  format: {game_win_rate: rateCell},
+  format: {game_win_rate: rateCell, games_won: x => x == null ? "—" : x},
   align: {games_won: "right", games_played: "right", game_win_rate: "right"},
-  sort: "games_played",
+  sort: "game_win_rate",
   reverse: true,
   rows: 20,
   layout: "auto"
