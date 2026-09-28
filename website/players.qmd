@@ -140,6 +140,45 @@ most_played_cards = pick(
     top_cards_by_player(get_data("drafted_decks")),
     ["season_id", "player", "rank", "card_name", "pick_count"],
 )
+power_pieces = pick(
+    get_power_pieces_by_player(),
+    ["season_id", "player", "drafts_played", "seasons_played", "power_count",
+     "avg_power_per_draft", "most_picked_power_card", "most_picked_power_count"],
+)
+
+
+# --- power_piece_picks: every power piece per (season, player), zeros included.
+# power_pieces_by_player only carries the single most picked piece, so the
+# per-card breakdown is rebuilt from drafted_decks. Keep in sync with
+# POWER_PIECES in ManaCore's statistics_calculator.py.
+POWER_PIECES = [
+    "Black Lotus", "Gleemox", "Mana Crypt", "Time Walk", "Ancestral Recall",
+    "Sol Ring", "Mox Poison", "Mox Sapphire", "Mox Pearl", "Mox Jet",
+    "Mox Ruby", "Mox Emerald",
+]
+
+
+def power_picks_by_player(df):
+    def _counts(keys):
+        grid = (df[keys].drop_duplicates()
+                  .merge(pd.DataFrame({"card_name": POWER_PIECES}), how="cross"))
+        counts = (df[df["card_name"].isin(POWER_PIECES)]
+                    .groupby(keys + ["card_name"], as_index=False)
+                    .agg(pick_count=("draft_id", "nunique")))
+        out = grid.merge(counts, on=keys + ["card_name"], how="left")
+        out["pick_count"] = out["pick_count"].fillna(0).astype(int)
+        return out.sort_values(keys + ["pick_count", "card_name"],
+                               ascending=[True] * len(keys) + [False, True])
+
+    all_seasons = _counts(["player"])
+    all_seasons["season_id"] = "Season-All"
+    return pd.concat([all_seasons, _counts(["season_id", "player"])], ignore_index=True)
+
+
+power_piece_picks = pick(
+    power_picks_by_player(get_data("drafted_decks")),
+    ["season_id", "player", "card_name", "pick_count"],
+)
 # 'archtype' is the legacy (misspelled) column name; keep both so either survives.
 player_archetype_winrate = pick(
     get_player_archetype_winrates(),
@@ -164,6 +203,8 @@ tables = [
     player_stats,
     player_vs_stats,
     most_played_cards,
+    power_pieces,
+    power_piece_picks,
     player_archetype_winrate,
     player_decktype_winrate,
     player_card_winrate,
@@ -185,6 +226,8 @@ ojs_define(
     player_stats=player_stats,
     player_vs_stats=player_vs_stats,
     most_played_cards=most_played_cards,
+    power_pieces=power_pieces,
+    power_piece_picks=power_piece_picks,
     player_archetype_winrate=player_archetype_winrate,
     player_decktype_winrate=player_decktype_winrate,
     player_card_winrate=player_card_winrate,
@@ -217,6 +260,8 @@ decktypeCountsData = transpose(player_decktype_counts)
 playerStatsData = transpose(player_stats)
 playerVsData = transpose(player_vs_stats)
 mostPlayedCardsData = transpose(most_played_cards)
+powerPiecesData = transpose(power_pieces)
+powerPiecePicksData = transpose(power_piece_picks)
 archetypeWinrateData = transpose(player_archetype_winrate)
 decktypeWinrateData = transpose(player_decktype_winrate)
 cardWinrateData = transpose(player_card_winrate)
@@ -417,6 +462,46 @@ searchTable(forSelection(playerVsData), {
   table.style.width = "max-content";
   table.style.maxWidth = "100%";
   return table;
+}
+```
+
+
+
+```{ojs}
+//| title: "Power Cards"
+// Summary row on top, then all power pieces with how often each was picked.
+// Both are short, so no search box and no max-height (see Most Played Cards).
+{
+  const compact = table => {
+    table.style.maxHeight = "none";
+    table.style.width = "max-content";
+    table.style.maxWidth = "100%";
+    return table;
+  };
+
+  const summary = compact(Inputs.table(forSelection(powerPiecesData), {
+    layout: "auto",
+    header: {
+      season_id: "Season",
+      player: "Player",
+      drafts_played: "Drafts Played",
+      seasons_played: "Seasons Played",
+      power_count: "Power Pieces",
+      avg_power_per_draft: "Avg per Draft",
+      most_picked_power_card: "Most Picked Power",
+      most_picked_power_count: "Times Picked"
+    },
+    format: {avg_power_per_draft: num}
+  }));
+
+  const picks = compact(Inputs.table(forSelection(powerPiecePicksData), {
+    layout: "auto",
+    columns: ["card_name", "pick_count"],
+    header: {card_name: "Power Piece", pick_count: "Times Picked"}
+  }));
+  picks.style.marginTop = "1.5rem";
+
+  return html`<div>${summary}${picks}</div>`;
 }
 ```
 
