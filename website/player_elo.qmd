@@ -30,11 +30,6 @@ from src.backend.backend_functions import *
 initialize_data()
 player_color_map, archetype_color_map, decktype_color_map = get_color_maps()
 
-INITIAL_PLAYERS = [
-    "Dimlas", "Andrin", "Sili", "Valetin", "Tinu",
-    "Tommy", "Noe", "Guy", "Ivo", "Joel K.", "Myri",
-]
-
 player_elo_df = get_player_elo()
 
 # Latest elo entry per player/draft
@@ -54,6 +49,16 @@ player_elo_df = player_elo_df[
 
 player_elo_df = player_elo_df.sort_values(["season_id", "draft_id"])
 player_elo_df = add_season_draft_labels(player_elo_df)
+
+# Default selection: top 5 players by their current (latest) ELO
+INITIAL_PLAYERS = (
+    player_elo_df
+    .groupby("player")["elo"]
+    .last()
+    .nlargest(5)
+    .index
+    .tolist()
+)
 ```
 
 ## {.sidebar}
@@ -259,7 +264,10 @@ for y in (1200, 1100, 900, 800):
 
 _ = fig.update_layout(
     autosize=True,
-    showlegend=False,          
+    showlegend=False,
+    # Show the nearest point's tooltip when hovering along a line, not only on the point
+    hovermode="closest",
+    hoverdistance=80,
     xaxis=dict(tickangle=0, gridcolor="rgba(128,128,128,0.2)", zeroline=False),
     yaxis=dict(gridcolor="rgba(128,128,128,0.2)", zeroline=False),
     paper_bgcolor="rgba(0,0,0,0)",
