@@ -113,9 +113,32 @@ player_vs_stats = pick(
     ["season_id", "player", "opponent", "games_played_vs", "games_won_vs",
      "game_win_rate_vs", "matches_played_vs", "matches_won_vs", "match_win_rate_vs"],
 )
+
+
+# --- most_played_cards: top N per (season, player), derived from drafted_decks.
+# The most_played_card_by_player CSV only carries the single top card and has no
+# season_id, so it is rebuilt here. pick_count = drafts the card was in a deck.
+TOP_CARDS = 10
+
+
+def top_cards_by_player(df, n=TOP_CARDS):
+    def _top(keys):
+        counts = df.groupby(keys + ["card_name"], as_index=False).agg(
+            pick_count=("draft_id", "nunique")
+        )
+        counts = counts.sort_values(keys + ["pick_count", "card_name"],
+                                    ascending=[True] * len(keys) + [False, True])
+        counts["rank"] = counts.groupby(keys).cumcount() + 1
+        return counts[counts["rank"] <= n]
+
+    all_seasons = _top(["player"])
+    all_seasons["season_id"] = "Season-All"
+    return pd.concat([all_seasons, _top(["season_id", "player"])], ignore_index=True)
+
+
 most_played_cards = pick(
-    get_most_played_card_by_player(),
-    ["season_id", "player", "card_name", "pick_count"],
+    top_cards_by_player(get_data("drafted_decks")),
+    ["season_id", "player", "rank", "card_name", "pick_count"],
 )
 # 'archtype' is the legacy (misspelled) column name; keep both so either survives.
 player_archetype_winrate = pick(
@@ -376,14 +399,25 @@ searchTable(forSelection(playerVsData), {
 
 ```{ojs}
 //| title: "Most Played Cards"
-searchTable(forSelection(mostPlayedCardsData), {
-  header: {
-    season_id: "Season",
-    player: "Player",
-    card_name: "Card Name",
-    pick_count: "Pick Count"
-  }
-})
+// Only ever TOP_CARDS rows, so no search box, and lift Inputs.table's default
+// ~11-row max-height (sized for 22px rows; this theme's rows are taller).
+{
+  const table = Inputs.table(forSelection(mostPlayedCardsData), {
+    layout: "auto",
+    header: {
+      season_id: "Season",
+      player: "Player",
+      rank: "Rank",
+      card_name: "Card Name",
+      pick_count: "Pick Count"
+    }
+  });
+  table.style.maxHeight = "none";
+  // Shrink to the widest card name instead of spanning the whole card.
+  table.style.width = "max-content";
+  table.style.maxWidth = "100%";
+  return table;
+}
 ```
 
 
