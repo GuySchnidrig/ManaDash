@@ -96,6 +96,11 @@ def get_most_played_card_by_player():
     return get_data('most_played_card_by_player')
 
 
+def get_power_pieces_by_player():
+    """Power pieces drafted per player, per season plus a Season-All roll-up"""
+    return get_data('power_pieces_by_player')
+
+
 def get_player_archetype_winrates():
     """Player win rates by archetype"""
     return get_data('player_archetype_winrates')
