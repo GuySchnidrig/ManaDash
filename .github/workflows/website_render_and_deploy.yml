@@ -6,24 +6,21 @@ on:
     paths:
       - 'data/**'
       - 'website/**'
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  render-deploy:
+  build:
+    name: Render ManaDash
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
-
     steps:
       - uses: actions/checkout@v6
 
@@ -37,28 +34,38 @@ jobs:
 
       - name: Install dependencies
         run: uv sync
-      
+
       - name: Refresh card metadata
         run: uv run python -m src.backend.card_images
 
       - name: Render Quarto site
         run: uv run quarto render website
-      
-      - name: Inspect render output
+
+      - name: Sanity check render output
         run: |
-          ls -la website/_quarto.yml || echo "NO _quarto.yml ON RUNNER"
-          grep -c "quarto-dashboard" website/_site/index.html || echo "NOT A DASHBOARD"
-          grep -o 'href="[^"]*\.css"' website/_site/index.html | head || true
-          ls website/_site | head -20
-          ls website/_site/site_libs 2>/dev/null | head
-          git ls-files website/
-          git check-ignore -v website/_quarto.yml || echo "not ignored"
+          test -f website/_site/index.html
+          grep -q "quarto-dashboard" website/_site/index.html
 
       - name: Upload artifact
+        if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
         with:
           path: website/_site
 
+  deploy:
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
       - name: Deploy to GitHub Pages
         id: deploy
         uses: actions/deploy-pages@v4
