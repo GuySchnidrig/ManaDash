@@ -34,6 +34,8 @@ website:
         text: Card Groups
       - href: card_impact.qmd
         text: Card Impact
+      - href: season_ranking.qmd
+        text: Season Ranking
       - href: standings.qmd
         text: Standings
     right:

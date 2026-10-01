@@ -1,0 +1,116 @@
+---
+title: "Season Ranking"
+format:
+  dashboard:
+    scrolling: true
+    include-before-body:
+      text: |
+          <style>
+          #quarto-dashboard-header { display: none !important; }
+          .quarto-dashboard #quarto-content,
+          .quarto-dashboard .quarto-dashboard-content,
+          .quarto-dashboard .bslib-page-dashboard {
+            padding-top: 0 !important;
+            margin-top: 0 !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+          }
+          /* The python data cell and the hidden OJS source still occupy layout
+             space even though they render nothing visible. */
+          .quarto-dashboard-content > .cell:not(.card),
+          .code-copy-outer-scaffold:has(> .cell-code.hidden) {
+            display: none !important;
+          }
+          </style>
+engine: jupyter
+execute:
+  echo: false
+---
+
+```{python}
+#| output: false
+#| echo: false
+
+import sys, os
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "..")))
+from src.backend.backend_functions import *
+
+initialize_data()
+
+ranking = get_season_ranking().copy()
+
+COLUMNS = [
+    "rank", "player", "drafts_played", "total_points",
+    "avg_points_per_draft", "OMP", "GWP", "OGP",
+]
+
+missing = [c for c in COLUMNS if c not in ranking.columns]
+if missing:
+    raise KeyError(f"get_season_ranking() is missing columns: {missing}")
+
+# ManaCore already sorts by rank; sort again so the default view is safe.
+ranking = ranking.sort_values(["rank", "player"])
+
+season_id = str(ranking["season_id"].iloc[0]) if not ranking.empty else ""
+ranking = ranking[COLUMNS]
+ranking["player"] = ranking["player"].astype(str)
+
+ojs_define(
+    season_id=season_id,
+    ranking=ranking,
+)
+```
+
+## Row
+
+```{ojs}
+//| title: "Season Ranking"
+{
+  const rankingData = transpose(ranking);
+
+  // Percentage columns can be null for players with no recorded opponents.
+  const fmt2 = x => (x == null || Number.isNaN(x)) ? "" : d3.format(".2f")(x);
+
+  // Avg points per draft is the ranking criterion, so make it stand out.
+  const boldFmt2 = x => htl.html`<strong>${fmt2(x)}</strong>`;
+
+  const table = rankingData.length === 0
+    ? htl.html`<p class="text-muted">No ranking available.</p>`
+    : Inputs.table(rankingData, {
+        columns: [
+          "rank", "player", "drafts_played", "total_points",
+          "avg_points_per_draft", "OMP", "GWP", "OGP"
+        ],
+        header: {
+          rank: "Rank",
+          player: "Player",
+          drafts_played: "Drafts Played",
+          total_points: "Total Points",
+          avg_points_per_draft: "Avg Points / Draft",
+          OMP: "Opp Match Win % (OMP)",
+          GWP: "Game Win % (GWP)",
+          OGP: "Opp Game Win % (OGP)"
+        },
+        format: {
+          avg_points_per_draft: boldFmt2,
+          OMP: fmt2,
+          GWP: fmt2,
+          OGP: fmt2
+        },
+        align: {
+          rank: "right", drafts_played: "right", total_points: "right",
+          avg_points_per_draft: "right", OMP: "right", GWP: "right", OGP: "right"
+        },
+        width: { rank: 60, player: 140 },
+        rows: 40,
+        layout: "auto"
+      });
+
+  return htl.html`<div>
+    <p class="text-muted mb-2">${season_id}: ranked by average match points per draft.
+    Tiebreakers: OMP, GWP, OGP (season averages).</p>
+    ${table}
+  </div>`;
+}
+```
