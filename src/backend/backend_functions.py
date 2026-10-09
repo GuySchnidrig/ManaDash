@@ -74,6 +74,11 @@ def get_vintage_standings():
     return get_data('standings')
 
 
+def get_season_ranking():
+    """Ranking of the current season (season_ranking.csv from ManaCore)"""
+    return get_data('season_ranking')
+
+
 def get_vintage_decks():
     """Get decks with player info merged"""
     decks_df = get_data('drafted_decks')
